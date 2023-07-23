@@ -28,8 +28,8 @@ def Viscosity(P_x, T_x):
     Viscosity = cp('V', 'P', P_x, 'T', T_x, 'Hydrogen')
     return Viscosity
 
-def Reynolds_number(G, D, viscosity):
-    Re = (G * D) / viscosity
+def Reynolds_number(G, D, mu):
+    Re = (G * D) /mu
     return Re
 
 def colebrook_equation(Re, epsilon, D):
