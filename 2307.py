@@ -92,8 +92,8 @@ current_index = 0
 samples = 10000
  
 #===========================Pipe Inlet Thermodynamics==========================
-P_x = 25e5
-T_x = 25
+P_x = 50e5
+T_x = 300
 rho_x = Eqn_of_State(P_x, T_x)
 vel_x = G / rho_x                                             
 T_surface = 1200
@@ -106,7 +106,7 @@ Re_x = Reynolds_number(G, D, mu)
 f_x = colebrook_equation(Re_x, Epsilon, D)
 Nu = Nusselt_No(f_x, Re_x, Pr)
 h = k * Nu / D
-T_out = Asymptotic_T_increase(Nu, D, k, dx, T_surface, mdot, Cp)
+T_xdx = Asymptotic_T_increase(Nu, D, k, dx, T_surface, mdot, Cp)
 #=========================Solver Initialisation================================
 Approx_P_drop = Approx_Pressure_drop(G, dx, rho_x, f_x, D)
 Probable_P_start = P_x - Approx_P_drop
@@ -116,7 +116,7 @@ rho_from_assumed_drop_and_momentum_eqn = np.zeros(samples)
 error_in_density = np.zeros(samples)
 
 for i in range(len(Probable_P)):                                                
-    rho_from_T_and_assumedP[i] = Eqn_of_State(Probable_P[i], T_out)
+    rho_from_T_and_assumedP[i] = Eqn_of_State(Probable_P[i], T_xdx)
     rho_from_assumed_drop_and_momentum_eqn[i] = Momentum_Eqn(P_x, rho_x, G, f_x, D, dx, Probable_P[i])
     error_in_density[i] = (abs(rho_from_T_and_assumedP[i] - rho_from_assumed_drop_and_momentum_eqn[i]))
 
