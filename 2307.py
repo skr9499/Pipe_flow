@@ -58,7 +58,7 @@ def Asymptotic_T_increase (Nu, D, k, dx, T_surface, mdot, Cp):
 
 def Approx_Pressure_drop(G,dx, rho_x, f, D):
     v_x = 1/rho_x
-    drop = 10*(((G**2)*f*dx*v_x)/(2*D))
+    drop = 100*(((G**2)*f*dx*v_x)/(2*D))
     return drop
 
 def Eqn_of_State(P_x, T_x):
@@ -93,7 +93,7 @@ samples = 10000
  
 #===========================Pipe Inlet Thermodynamics==========================
 P_x = 50e5
-T_x = 300
+T_x = 25
 rho_x = Eqn_of_State(P_x, T_x)
 vel_x = G / rho_x                                             
 T_surface = 1200
