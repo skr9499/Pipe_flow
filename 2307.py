@@ -61,8 +61,8 @@ def Approx_Pressure_drop(G,dx, rho_x, f, D):
     drop = 10*(((G**2)*f*dx*v_x)/(2*D))
     return drop
 
-def Eqn_of_State(P_new, T_out):
-    rho_new_EOS = cp('D', 'P', P_new, 'T', T_out, 'Hydrogen')
+def Eqn_of_State(P_x, T_x):
+    rho_new_EOS = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
     return rho_new_EOS
 
 def Momentum_Eqn(P_x, rho_x, G, f_x, D, dx, P_new):
@@ -94,14 +94,13 @@ samples = 10000
 #===========================Pipe Inlet Thermodynamics==========================
 P_x = 25e5
 T_x = 25
-rho_x = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
+rho_x = Eqn_of_State(P_x, T_x)
 vel_x = G / rho_x                                             
 T_surface = 1200
 #=================================Computation==================================
 mu = Viscosity(P_x, T_x)
 Cp = Cp_fluid(P_x, T_x)
 k = Thermal_conducitvity(P_x, T_x)
-mu = Viscosity(P_x, T_x)
 Pr = Prandtl_number(Cp, mu, k)
 Re_x = Reynolds_number(G, D, mu)
 f_x = colebrook_equation(Re_x, Epsilon, D)
