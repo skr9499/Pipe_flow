@@ -58,8 +58,18 @@ def Asymptotic_T_increase (Nu, D, k, dx, T_surface, mdot, Cp):
 
 def Approx_Pressure_drop(G,dx, rho_x, f, D):
     v_x = 1/rho_x
-    drop = 2*(((G**2)*f*dx*v_x)/(2*D))
+    drop = 10*(((G**2)*f*dx*v_x)/(2*D))
     return drop
+
+def Eqn_of_State(P_new, T_out):
+    rho_new_EOS = cp('D', 'P', P_new, 'T', T_out, 'Hydrogen')
+    return rho_new_EOS
+
+def Momentum_Eqn(P_x, rho_x, G, f_x, D, dx, P_new):
+    v_x = 1 / rho_x
+    spec_vol_new = (P_x - P_new + ((G ** 2) * v_x) * (1 - ((f_x * dx) / (2 * D)))) / (G ** 2)
+    rho_new = 1 / spec_vol_new
+    return rho_new
 
 #================================Pipe Dimensions===============================
 mdot = 37
@@ -71,13 +81,13 @@ dx = 0.01
 L_pipe = 0.5  
 
 Pipe_elements = L_pipe / dx
-segment = 0.00
-Pipe_Length = np.zeros(int(Pipe_elements))
-P_field = np.zeros(int(Pipe_elements))
-T_field = np.zeros(int(Pipe_elements))
-Vel_field = np.zeros(int(Pipe_elements))
-Rho_field = np.zeros(int(Pipe_elements))
-Error_array = np.zeros(int(Pipe_elements))
+#segment = 0.00
+# Pipe_Length = np.zeros(int(Pipe_elements))
+# P_field = np.zeros(int(Pipe_elements))
+# T_field = np.zeros(int(Pipe_elements))
+# Vel_field = np.zeros(int(Pipe_elements))
+# Rho_field = np.zeros(int(Pipe_elements))
+# Error_array = np.zeros(int(Pipe_elements))
 current_index = 0
 samples = 10000
  
@@ -87,7 +97,6 @@ T_x = 25
 rho_x = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
 vel_x = G / rho_x                                             
 T_surface = 1200
-
 #=================================Computation==================================
 mu = Viscosity(P_x, T_x)
 Cp = Cp_fluid(P_x, T_x)
@@ -97,8 +106,25 @@ Pr = Prandtl_number(Cp, mu, k)
 Re_x = Reynolds_number(G, D, mu)
 f_x = colebrook_equation(Re_x, Epsilon, D)
 Nu = Nusselt_No(f_x, Re_x, Pr)
+h = k * Nu / D
 T_out = Asymptotic_T_increase(Nu, D, k, dx, T_surface, mdot, Cp)
 #=========================Solver Initialisation================================
-P_drop_Approx = Approx_Pressure_drop(G, dx, rho_x, f_x, D)
-Probable_P_start = P_x - P_drop_Approx
+Approx_P_drop = Approx_Pressure_drop(G, dx, rho_x, f_x, D)
+Probable_P_start = P_x - Approx_P_drop
 Probable_P = np.linspace(P_x,Probable_P_start,samples)
+rho_from_T_and_assumedP = np.zeros(samples)
+rho_from_assumed_drop_and_momentum_eqn = np.zeros(samples)
+error_in_density = np.zeros(samples)
+
+for i in range(len(Probable_P)):                                                
+    rho_from_T_and_assumedP[i] = Eqn_of_State(Probable_P[i], T_out)
+    rho_from_assumed_drop_and_momentum_eqn[i] = Momentum_Eqn(P_x, rho_x, G, f_x, D, dx, Probable_P[i])
+    error_in_density[i] = (abs(rho_from_T_and_assumedP[i] - rho_from_assumed_drop_and_momentum_eqn[i]))
+
+for j in range(len(error_in_density)):
+    index = np.argmin(error_in_density)
+
+error_in_density_final = error_in_density[index]
+P_xdx = Probable_P[index]
+rho_xdx = rho_from_T_and_assumedP[index]
+vel_xdx = G / rho_xdx
