@@ -1,0 +1,59 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Jul 25 01:27:45 2023
+
+@author: S335830
+"""
+
+import math
+import numpy as np
+import matplotlib.pyplot as plt
+from CoolProp.CoolProp import PropsSI as cp
+
+def Momentum_Eqn(P_tank,Possible_P,G):
+    Possible_Rho = (G**2)/(P_tank-Possible_P)
+    return Possible_Rho
+
+def Energy_Eqn(h0,G,Possible_Rho):
+    Possible_h =h0-((G**2)/(Possible_Rho**2))
+    return Possible_h
+
+def EOS(P,Rho):
+    h = cp('Hmass', 'P', P, 'D', Rho, 'Hydrogen')
+    return h
+
+P_tank = 50e5
+T_tank = 25
+mdot = 6
+D = 5e-2
+H_tank = cp('Hmass', 'P', P_tank, 'T', T_tank, 'Hydrogen')
+A_pipe = math.pi * (D ** 2) / 4
+G = mdot / A_pipe 
+samples = 100000
+Possible_Rho = np.zeros(samples)
+Possible_h_EOS = np.zeros(samples)
+Possible_h = np.zeros(samples)
+Error_h = np.zeros(samples)
+Possible_P = np.linspace(48e5,49.9e5,samples)
+
+
+Possible_Rho = Momentum_Eqn(P_tank,Possible_P,G)
+Possible_h = Energy_Eqn(H_tank, G, Possible_Rho)
+Possible_h_EOS = EOS(Possible_P,Possible_Rho)
+Error_h = abs(Possible_h - Possible_h_EOS)
+
+for i in range(len(Error_h)):
+    index = np.argmin(Error_h)
+
+Error_h_final = Error_h[index]
+P_static = Possible_P[index]
+Rho_static = Possible_Rho[index]
+Vel = G/Rho_static
+T_static = cp('T', 'P', P_static, 'D', Rho_static, 'Hydrogen')
+
+# plt.figure(1)
+
+# plt.plot(segment_array, P_x_array)
+# plt.xlabel('Segment')
+# plt.ylabel('P_x')
+# plt.legend()
