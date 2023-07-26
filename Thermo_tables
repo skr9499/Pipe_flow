@@ -10,33 +10,33 @@ import numpy as np
 import matplotlib.pyplot as plt
 
     
-P_lower = 2e5
+P_lower = 1e5
 P_upper = 50e5
-data_samples = 10000
-rho_lower = 0.005
-rho_upper = 63
+data_samples = 100
+T_lower = 15
+T_upper = 800
 Enthalpy_Matrix = np.zeros((data_samples, data_samples))
 Viscosity_Matrix = np.zeros((data_samples, data_samples))
-Temperature_Matrix = np.zeros((data_samples, data_samples))
-Therm_Table_noround = np.zeros((data_samples**2,5))
+Rho_Matrix = np.zeros((data_samples, data_samples))
+Thermal_Conductivity = np.zeros((data_samples, data_samples))
+Therm_Table_noround = np.zeros((data_samples**2,6))
 k=0
     
     
 # Generate linearly spaced numbers
 P_Matrix = np.linspace(P_lower, P_upper, data_samples)
-Rho_Matrix = np.linspace(rho_lower, rho_upper, data_samples)
-Specific_Vol_Matrix = np.zeros(data_samples)  
-Specific_Vol_Matrix = np.around(np.reciprocal(Rho_Matrix),decimals=4)
+T_Matrix = np.linspace(T_lower, T_upper, data_samples)
 
 #Generate enthalphy and viscosity for the generated matrix
 for i in range(len(P_Matrix)):
-    for j in range((len(Specific_Vol_Matrix))):
-        Enthalpy_Matrix[i,j] = cp('Hmass', 'P', P_Matrix[i], 'D', Rho_Matrix[j], 'Hydrogen')
-        Viscosity_Matrix[i,j] = cp('V', 'P', P_Matrix[i], 'D', Rho_Matrix[j], 'Hydrogen')
-        Temperature_Matrix[i,j] = cp('T', 'P', P_Matrix[i], 'D', Rho_Matrix[j], 'Hydrogen')
-        Therm_Table_noround[k] = [P_Matrix[i], Specific_Vol_Matrix[j], Temperature_Matrix[i][j], Enthalpy_Matrix[i, j], Viscosity_Matrix[i,j]]  # Assign values to Therm_Table
+    for j in range((len(T_Matrix))):
+        Enthalpy_Matrix[i,j] = cp('Hmass', 'P', P_Matrix[i], 'T', T_Matrix[j], 'Hydrogen')
+        Viscosity_Matrix[i,j] = cp('V', 'P', P_Matrix[i], 'T', T_Matrix[j], 'Hydrogen')
+        Rho_Matrix[i,j] = cp('T', 'P', P_Matrix[i], 'T', T_Matrix[j], 'Hydrogen')
+        Thermal_Conductivity[i,j] = cp('L', 'P', P_Matrix[i], 'T', T_Matrix[j], 'Hydrogen')
+        Therm_Table_noround[k] = [P_Matrix[i], T_Matrix[j], Rho_Matrix[i][j], Enthalpy_Matrix[i, j], Viscosity_Matrix[i,j],Thermal_Conductivity[i][j]]  # Assign values to Therm_Table
         k += 1  # Increment the index
-np.savetxt('thermotable.csv',Therm_Table_noround, delimiter=' , ')
+
 # # Plot the Matrix
 # plt.plot(range(len(P_Matrix)), P_Matrix)
 # plt.xlabel('Index')
