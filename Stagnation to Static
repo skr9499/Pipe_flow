@@ -12,8 +12,8 @@ from CoolProp.CoolProp import PropsSI as cp
 
 def Momentum_Eqn (P_tank,P,G):
     v = (P_tank-P)/(G**2)
-    if v<=0:
-        print("specific vol is negative u fucker")
+    if v<=0.012 and v> 41.322:
+        print(f"specific vol {v} is not in your domain < 0.012 or > 41.322")
         return 0
     else:
         return v
@@ -21,15 +21,15 @@ def Momentum_Eqn (P_tank,P,G):
 def Energy(P,v,G,H_tank):
     h_Energy = H_tank-(((G**2)*(v**2))/2)
     if h_Energy< -59547.79 and h_Energy>11277472.35:
-        print("Operating enthalpy exceeded u fucker")
+        print(f"Operating enthalpy{h_Energy} exceeded < -59547.79 or > 11277472.35")
         return 0
     else:
         return h_Energy
 
 def EOS(P,v):
     Rho = 1/v
-    if Rho <0.03 or Rho> 81.8299:
-        print("Operating density exceeded u fucker")
+    if Rho <0.0242 or Rho> 81.8299:
+        print(f"Operating density {Rho} exceeded domain Rho < 0.0242 or Rho > 81.8299")
         return 0
     else:
         h_EOS = cp('Hmass', 'P', P, 'D', Rho, 'Hydrogen')
@@ -47,7 +47,7 @@ def Error(P1,P2,P_tank,H_tank,G):
     Error_2 = h_EOS2 - h_Energy2
     P3 = P2 - ((P1-P2)*Error_2)/(Error_1-Error_2)
     if P3 < 1e5 or P3> 50e5:
-        print("Operating Pressure exceeded u fucker. Solver is fucking u.")
+        print(f"Operating Pressure exceeded u fucker {P3}. Solver is fucking u.")
         return P3,i
     v3 = Momentum_Eqn(P_tank, P3, G)
     h_Energy3 = Energy(P3, v3, G, H_tank)
@@ -68,8 +68,8 @@ D = 15e-2
 H_tank = cp('Hmass', 'P', P_tank, 'T', T_tank, 'Hydrogen')
 A_pipe = math.pi * (D ** 2) / 4
 G = mdot / A_pipe
-P1 = 45e5
-P2 = 49e5
+P1 = 1e5
+P2 = 55e5
 P3 = Error(P1, P2, P_tank, H_tank,G)
 
              
