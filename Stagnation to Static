@@ -14,19 +14,18 @@ from CoolProp.CoolProp import PropsSI as cp
 
 def equations(variables):
     P, Rho, h = variables
-    
     P_tank = 50e5
     T_tank = 25
     mdot = 37
-    D = 5.5e-2
+    D = 10e-2
     H_tank = cp('Hmass', 'P', P_tank, 'T', T_tank, 'Hydrogen')
     A_pipe = math.pi * (D ** 2) / 4
     G = mdot / A_pipe
     # Define the three equations here
-    eq1 = P_tank - P - ((G**2)/Rho)
-    eq2 = H_tank - h + (((G/Rho)**2)/2)
-    eq3 = h - cp('Hmass', 'P', P, 'D', Rho, 'Hydrogen')
-    return [eq1, eq2, eq3]
+    Momentum_Eqn = P_tank - P - ((G**2)/Rho)
+    Energy_Eqn = H_tank - h + (((G/Rho)**2)/2)
+    EOS_Eqn = h - cp('Hmass', 'P', P, 'D', Rho, 'Hydrogen')
+    return [Momentum_Eqn, Energy_Eqn, EOS_Eqn]
 
 
 # Initial guess for the variables (this is important, as the solver starts from this point)
@@ -35,13 +34,11 @@ initial_guess = [48e5, 50.5, 85000.0]
 result = fsolve(equations, initial_guess)
 
 # Extract the values of x, y, and z from the result
-x_result, y_result, z_result = result
+P_Static, Rho_Static, Enthalpy_Static = result
 
-# Display the results
-print("Solution:")
-print(f"x = {x_result}")
-print(f"y = {y_result}")
-print(f"z = {z_result}")
+
+
+
 
 
 
