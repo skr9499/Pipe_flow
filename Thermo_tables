@@ -1,51 +1,79 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Jul 10 15:58:34 2023
+Created on Wed Jul 26 23:00:15 2023
 
-@author: sreekrishnaravishankar
+@author: S335830
 """
+
+import math
+# import numpy as np
+# import matplotlib.pyplot as plt
 from CoolProp.CoolProp import PropsSI as cp
-import numpy as np
-import matplotlib.pyplot as plt
 
+def Momentum_Eqn (P_tank,P,G):
+    v = (P_tank-P)/(G**2)
+    if v<=0:
+        print("specific vol is negative u fucker")
+        return 0
+    else:
+        return v
+
+def Energy(P,v,G,H_tank):
+    h_Energy = H_tank-(((G**2)*(v**2))/2)
+    if h_Energy< -59547.79 and h_Energy>11277472.35:
+        print("Operating enthalpy exceeded u fucker")
+        return 0
+    else:
+        return h_Energy
+
+def EOS(P,v):
+    Rho = 1/v
+    if Rho <0.0242 or Rho> 81.8299:
+        print("Operating density exceeded u fucker")
+        return 0
+    else:
+        h_EOS = cp('Hmass', 'P', P, 'D', Rho, 'Hydrogen')
+        return h_EOS
+
+def Error(P1,P2,P_tank,H_tank,G):
+    i = 0
+    v1 = Momentum_Eqn(P_tank, P1, G)
+    v2 = Momentum_Eqn(P_tank, P2, G)
+    h_Energy1 = Energy(P1, v1, G, H_tank)  
+    h_Energy2 = Energy(P2, v2, G, H_tank)
+    h_EOS1 = EOS(P1, v1)
+    h_EOS2 = EOS(P2,v2)
+    Error_1 = h_EOS1 - h_Energy1
+    Error_2 = h_EOS2 - h_Energy2
+    P3 = P2 - ((P1-P2)*Error_2)/(Error_1-Error_2)
+    if P3 < 1e5 or P3> 50e5:
+        print("Operating Pressure exceeded u fucker. Solver is fucking u.")
+        return P3,i
+    v3 = Momentum_Eqn(P_tank, P3, G)
+    h_Energy3 = Energy(P3, v3, G, H_tank)
+    h_EOS3 = EOS(P3, v3)
+    Error_3 = h_EOS3 - h_Energy3
+    if Error_3 <1e-3:
+        return P3
+    elif i<100:
+        i += 1
+        Error(P2,P3,P_tank,H_tank,G)
+    else: 
+        print("Not Convereged")
+
+P_tank = 50e5
+T_tank = 25
+mdot = 37
+D = 15e-2
+H_tank = cp('Hmass', 'P', P_tank, 'T', T_tank, 'Hydrogen')
+A_pipe = math.pi * (D ** 2) / 4
+G = mdot / A_pipe
+P1 = 45e5
+P2 = 49e5
+P3 = Error(P1, P2, P_tank, H_tank,G)
+
+             
+        
+        
+        
     
-P_lower = 1e5
-P_upper = 50e5
-data_samples = 100
-T_lower = 13
-T_upper = 800
-Enthalpy_Matrix = np.zeros((data_samples, data_samples))
-Viscosity_Matrix = np.zeros((data_samples, data_samples))
-Rho_Matrix = np.zeros((data_samples, data_samples))
-Thermal_Conductivity = np.zeros((data_samples, data_samples))
-Therm_Table_noround = np.zeros((data_samples**2,6))
-k=0
-    
-    
-# Generate linearly spaced numbers
-P_Matrix = np.linspace(P_lower, P_upper, data_samples)
-T_Matrix = np.linspace(T_lower, T_upper, data_samples)
-
-#Generate enthalphy and viscosity for the generated matrix
-for i in range(len(P_Matrix)):
-    for j in range((len(T_Matrix))):
-        Enthalpy_Matrix[i,j] = cp('Hmass', 'P', P_Matrix[i], 'T', T_Matrix[j], 'Hydrogen')
-        Viscosity_Matrix[i,j] = cp('V', 'P', P_Matrix[i], 'T', T_Matrix[j], 'Hydrogen')
-        Rho_Matrix[i,j] = cp('T', 'P', P_Matrix[i], 'T', T_Matrix[j], 'Hydrogen')
-        Thermal_Conductivity[i,j] = cp('L', 'P', P_Matrix[i], 'T', T_Matrix[j], 'Hydrogen')
-        Therm_Table_noround[k] = [P_Matrix[i], T_Matrix[j], Rho_Matrix[i][j], Enthalpy_Matrix[i, j], Viscosity_Matrix[i,j],Thermal_Conductivity[i][j]]  # Assign values to Therm_Table
-        k += 1  # Increment the index
-
-# # Plot the Matrix
-# plt.plot(range(len(P_Matrix)), P_Matrix)
-# plt.xlabel('Index')
-# plt.ylabel('P_Matrix Value')
-# plt.title('P_Matrix Values vs. Index')
-# plt.show()
-
-# plt.plot(range(len(Rho_Matrix)), Rho_Matrix)
-# plt.xlabel('Index')
-# plt.ylabel('Rho_Matrix Value')
-# plt.title('Rho_Matrix Values vs. Index')
-# plt.show()
