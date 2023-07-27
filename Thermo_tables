@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 P_lower = 1e5
 P_upper = 50e5
 data_samples = 100
-T_lower = 15
+T_lower = 13
 T_upper = 800
 Enthalpy_Matrix = np.zeros((data_samples, data_samples))
 Viscosity_Matrix = np.zeros((data_samples, data_samples))
