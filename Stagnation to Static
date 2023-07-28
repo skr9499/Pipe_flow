@@ -10,7 +10,7 @@ import math
 from CoolProp.CoolProp import PropsSI as cp
 
 
-def equations(variables, G,H_tank):
+def equations(variables):
     P, Rho, h = variables
     Momentum_Eqn = P_tank - P - ((G**2)/Rho)
     Energy_Eqn = H_tank - h + (((G/Rho)**2)/2)
@@ -20,11 +20,13 @@ def equations(variables, G,H_tank):
 
 P_tank = 50e5
 T_tank = 25
-mdot = 37
+mdot = 37.962
 D = 10e-2
 H_tank = cp('Hmass', 'P', P_tank, 'T', T_tank, 'Hydrogen')
 A_pipe = math.pi * (D ** 2) / 4
 G = mdot / A_pipe
-initial_guess = [48e5, 50.5, 85000.0]
-result = fsolve(equations, initial_guess, args=(G,H_tank))
+initial_guess = [50e5, 65, 85000.0]
+result = fsolve(equations, initial_guess)
 P_Static, Rho_Static, Enthalpy_Static = result
+Vel = G/Rho_Static
+T_static = cp('T', 'P', P_Static, 'D', Rho_Static, 'Hydrogen')
