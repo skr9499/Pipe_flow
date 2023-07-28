@@ -1,0 +1,112 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul 28 02:00:09 2023
+
+@author: S335830
+"""
+
+import math
+import numpy as np
+import matplotlib.pyplot as plt
+from CoolProp.CoolProp import PropsSI as cp
+from scipy.optimize import fsolve
+
+def Eqn_of_State(P_x, T_x):
+    rho_new_EOS = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
+    return rho_new_EOS
+
+def Cp_fluid(P_x, T_x):
+    Cp = cp('C', 'P', P_x, 'T', T_x, 'Hydrogen')
+    return Cp
+
+def Thermal_conducitvity(P_x, T_x):
+    k = cp('L', 'P', P_x, 'T', T_x, 'Hydrogen')
+    return k
+
+def Prandtl_number(cp, mu, k):
+    Prandtl_number = (cp * mu) / k
+    return Prandtl_number
+
+def Viscosity(P_x, T_x):
+    Viscosity = cp('V', 'P', P_x, 'T', T_x, 'Hydrogen')
+    return Viscosity
+
+def Reynolds_number(G, D, mu):
+    Re = (G * D) /mu
+    return Re
+
+def colebrook_equation(Re, epsilon, D):
+    f = 0.05                                                                    # Initial guess for friction factor
+    error = 1                                                                   # Error threshold
+    max_iterations = 10
+    iterations = 0
+
+    while (error > 1e-6) and (iterations < max_iterations):
+        f_new = (-2 * math.log10((epsilon / (3.7 * D)) + (2.51 / (Re * math.sqrt(f))))) ** -2
+        error = abs(f_new - f)
+        f = f_new
+        iterations = iterations + 1    
+    friction_factor = f
+    return friction_factor
+
+def Nusselt_No(f_x, Re_x, Pr):
+    Nu = ((f_x / 8) * (Re_x - 1000) * Pr) / (1 + 12.7 * ((f_x / 8) ** 0.5) * ((Pr ** (2 / 3)) - 1))
+    return Nu
+
+def Asymptotic_T_increase (Nu, D, k, dx, T_surface, mdot, Cp):
+    h = k * Nu / D
+    A_pipe_element = (math.pi * D) * dx
+    T_out = T_surface - ((T_surface - T_x) * math.exp(-(h * A_pipe_element) / (mdot * Cp)))
+    return T_out
+
+def equations(variables):
+    P, Rho = variables
+    Momentum_Eqn = P_x + ((G**2)/rho_x) - P - ((G**2)/Rho)
+    EOS_Eqn = Rho - cp('D', 'P', P_x, 'T', T_xdx, 'Hydrogen')
+    return [Momentum_Eqn, EOS_Eqn]
+
+
+mdot = 37.962
+D = 10e-2
+A_pipe = math.pi * (D ** 2) / 4
+G = mdot / A_pipe
+Epsilon = 0.3853e-6
+dx = 0.01
+L_pipe = 0.5  
+pipe_elements = L_pipe / dx
+T_surface = 1200
+
+
+
+segment = 0.00
+Pipe_Length = np.zeros(int(pipe_elements))
+P_x_array = np.zeros(int(pipe_elements))
+T_x_array = np.zeros(int(pipe_elements))
+vel_x_array = np.zeros(int(pipe_elements))
+rho_x_array = np.zeros(int(pipe_elements))
+error_final_array = np.zeros(int(pipe_elements))
+current_index = 0
+
+P_x = 4671233.159988396
+T_x = 25
+rho_x = Eqn_of_State(P_x, T_x)
+vel_x = G / rho_x
+
+while (segment < pipe_elements) and (current_index<pipe_elements):
+
+    mu = Viscosity(P_x, T_x)
+    Cp = Cp_fluid(P_x, T_x)
+    k = Thermal_conducitvity(P_x, T_x)
+    Pr = Prandtl_number(Cp, mu, k)
+    Re_x = Reynolds_number(G, D, mu)
+    f_x = colebrook_equation(Re_x, Epsilon, D)
+    Nu = Nusselt_No(f_x, Re_x, Pr)
+    h = k * Nu / D
+    T_xdx = Asymptotic_T_increase(Nu, D, k, dx, T_surface, mdot, Cp)
+    initial_guess = [P_x, rho_x]
+    result = fsolve(equations, initial_guess)
+    P_xdx,Rho_xdx = result
+    Vel_xdx = G/Rho_xdx
+    P_x = P_xdx
+    T_x = T_xdx
+    
