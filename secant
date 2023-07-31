@@ -1,8 +1,9 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Jul 31 08:50:55 2023
+Created on Thu Jul 20 09:07:59 2023
 
-@author: S335830
+@author: sreekrishnaravishankar
 """
 
 import math
@@ -67,21 +68,25 @@ def Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i):
     Error1 = rho1_EOS - rho_momentum1
     Error2 = rho2_EOS - rho_momentum2
     P3 = P2 - (((P1-P2)*Error2)/(Error1-Error2))
-    print(P3)
+    print(f"P2 is: {P2},{i}")
+    print(f"P3 is {P3},{i}")
     rho3_EOS = Eqn_of_State(P3, T_out)          
     rho3_momentum = Momentum_Eqn(P_x, rho_x, G, f_x, D, dx, P3)
     Error3 = abs(rho3_EOS - rho3_momentum)
     print(Error3)
-    if i > 20:
+    if (Error3 <1e-13) or (P2 == P3):
+        print("I am here")
+        return float(P3)
+        quit()
+    elif (i<20) or (P1 != P2):
+        P1 = P2
+        P2 = P3
+        i = i+1
+        P3 = Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i)
+    else:
         print("Soln P_xdx not found after 20 iterations")
-        i = i+1
-        return P3,i    
-    elif i <20:
-        i = i+1
-        Error(P2,P3,T_out,P_x,rho_x,G,f_x,D,dx,i)
-    elif Error3<1e-6:
-        return P3
-
+    return float(P3)
+    
 
 
     
@@ -90,33 +95,97 @@ P_x = 45e5
 T_x = 25
 samples = 10000
 mdot = 37.962
-D = 10e-2
+D = 8e-2
 Epsilon = 0.3853e-6
 A_pipe = math.pi * (D ** 2) / 4
 G = mdot / A_pipe
 rho_x = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
 vel_x = G / rho_x
 dx = 0.01
-L_pipe = 5
+L_pipe = 7.33
 pipe_elements = L_pipe / dx
+segment = 0.00
+segment_array = np.zeros(int(pipe_elements))
+P_x_array = np.zeros(int(pipe_elements))
+T_x_array = np.zeros(int(pipe_elements))
+vel_x_array = np.zeros(int(pipe_elements))
+# Mach_no_array = np.zeros(int(pipe_elements))
+rho_x_array = np.zeros(int(pipe_elements))
+current_index = 0
+
+while ((segment < pipe_elements) and (current_index<pipe_elements)):
+    Cp = Cp_fluid(P_x, rho_x)
+    k = Thermal_conducitvity(P_x, rho_x)
+    mu = Viscosity(P_x, rho_x)
+    Pr = Prandtl_number(Cp, mu, k)
+    Re_x = Reynolds_number(G, dx, mu)
+    f_x = colebrook_equation(Re_x, Epsilon, D)
+    Nu = Gnielinski(f_x, Re_x, Pr)
+    h = k * Nu / D
+    A_pipe_element = (math.pi * D) * dx
+    T_out = T_surface - ((T_surface - T_x) * math.exp(-(h * A_pipe_element) / (mdot * Cp)))
+    segment_array[current_index] = segment
+    P_x_array[current_index] = P_x
+    T_x_array[current_index] = T_x
+    vel_x_array[current_index] = vel_x
+    rho_x_array[current_index] = rho_x
+
+    P1 = P_x-(0.5e5)
+    P2 = P_x+(0.5e5)
+    i = 0
+    P_xdx = Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i)
+    rho_xdx = Eqn_of_State(P_xdx,T_out)
+    vel_xdx = G/rho_xdx
+    
+    P_x = P_xdx
+    rho_x = rho_xdx
+    vel_x = vel_xdx
+    T_x = T_out
+    segment = segment + dx
+    current_index = current_index+1
+
+'''
+
+change here after brkfast
+    # for i in range(len(P_new)):                                                 #Pnew = keep vel head const
+    #     rho_new[i] = Momentum_Eqn(P_x, rho_x, G, f_x, D, dx, P_new[i])
+    #     T_new[i] = Eqn_of_State(P_new[i], rho_new[i])
+    #     error[i] = abs(T_new[i] - T_out)
+
+    # for i in range(len(error)):
+    #     index = np.argmin(error)
+    # error_final = error[index]
+    # P_final = P_new[index]
+    # rho_final = rho_new[index]
+    # vel_final = G / rho_final
+'''        
 
 
+        
+plt.figure(1)
 
-Cp = Cp_fluid(P_x, rho_x)
-k = Thermal_conducitvity(P_x, rho_x)
-mu = Viscosity(P_x, rho_x)
-Pr = Prandtl_number(Cp, mu, k)
-Re_x = Reynolds_number(G, dx, mu)
-f_x = colebrook_equation(Re_x, Epsilon, D)
-Nu = Gnielinski(f_x, Re_x, Pr)
-h = k * Nu / D
-A_pipe_element = (math.pi * D) * dx
-T_out = T_surface - ((T_surface - T_x) * math.exp(-(h * A_pipe_element) / (mdot * Cp)))
+plt.plot(segment_array, P_x_array, label='P_x')
+plt.xlabel('Segment')
+plt.ylabel('P_x')
+plt.legend()
+
+plt.figure(2)
+plt.plot(segment_array, T_x_array, label='T_x')
+plt.xlabel('Segment')
+plt.ylabel('T_x')
+plt.legend()
+
+plt.figure(3)
+plt.plot(segment_array, vel_x_array, label='vel_x')
+plt.xlabel('Segment')
+plt.ylabel('vel_x')
+plt.legend()
+
+plt.figure(4)
+plt.plot(segment_array, rho_x_array, label='rho_x')
+plt.xlabel('Segment')
+plt.ylabel('rho_x')
+plt.legend()
 
 
-P1 = P_x-(0.5e5)
-P2 = P_x+(0.5e5)
-i = 0
-P_xdx = Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i)
-rho_xdx = Eqn_of_State(P_xdx,T_out)
-vel_xdx = G/rho_xdx
+# Plotting the error_final along the segment variable
