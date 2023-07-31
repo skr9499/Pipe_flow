@@ -1,9 +1,8 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jul 20 09:07:59 2023
+Created on Mon Jul 31 08:50:55 2023
 
-@author: sreekrishnaravishankar
+@author: S335830
 """
 
 import math
@@ -60,7 +59,7 @@ def Eqn_of_State(P_new, T):
     Rho_new = cp('D', 'P', P_new, 'T', T, 'Hydrogen')
     return Rho_new
 
-def Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx):
+def Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i):
     rho1_EOS = Eqn_of_State(P1, T_out)
     rho2_EOS = Eqn_of_State(P2, T_out)
     rho_momentum1 = Momentum_Eqn(P_x, rho_x, G, f_x, D, dx, P1)
@@ -68,18 +67,21 @@ def Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx):
     Error1 = rho1_EOS - rho_momentum1
     Error2 = rho2_EOS - rho_momentum2
     P3 = P2 - (((P1-P2)*Error2)/(Error1-Error2))
-    
-               
-    
-               
+    print(P3)
     rho3_EOS = Eqn_of_State(P3, T_out)          
     rho3_momentum = Momentum_Eqn(P_x, rho_x, G, f_x, D, dx, P3)
-    Error3 = rho3_EOS - rho3_momentum
-    if Error<1e-6:
+    Error3 = abs(rho3_EOS - rho3_momentum)
+    print(Error3)
+    if i > 20:
+        print("Soln P_xdx not found after 20 iterations")
+        i = i+1
+        return P3,i    
+    elif i <20:
+        i = i+1
+        Error(P2,P3,T_out,P_x,rho_x,G,f_x,D,dx,i)
+    elif Error3<1e-6:
         return P3
-    else:
-        i+1
-        Error(P2,P3,T_out,P_x,rho_x,G,f_x,D,dx)       
+
 
 
     
@@ -97,95 +99,24 @@ vel_x = G / rho_x
 dx = 0.01
 L_pipe = 5
 pipe_elements = L_pipe / dx
-segment = 0.00
-segment_array = np.zeros(int(pipe_elements))
-P_x_array = np.zeros(int(pipe_elements))
-T_x_array = np.zeros(int(pipe_elements))
-vel_x_array = np.zeros(int(pipe_elements))
-rho_x_array = np.zeros(int(pipe_elements))
-error_final_array = np.zeros(int(pipe_elements))
-current_index = 0
-
-while (segment < pipe_elements) and (current_index<pipe_elements):
-    P_start = P_x - 1e5
-    P_new = np.linspace(P_x, P_start, samples)
-    rho_new = np.zeros(samples)
-    T_new = np.zeros(samples)
-    error = np.zeros(samples)
-
-    Cp = Cp_fluid(P_x, rho_x)
-    k = Thermal_conducitvity(P_x, rho_x)
-    mu = Viscosity(P_x, rho_x)
-    Pr = Prandtl_number(Cp, mu, k)
-    Re_x = Reynolds_number(G, dx, mu)
-    f_x = colebrook_equation(Re_x, Epsilon, D)
-    Nu = Gnielinski(f_x, Re_x, Pr)
-    h = k * Nu / D
-    A_pipe_element = (math.pi * D) * dx
-    T_out = T_surface - ((T_surface - T_x) * math.exp(-(h * A_pipe_element) / (mdot * Cp)))
-    segment_array[current_index] = segment
-    P_x_array[current_index] = P_x
-    T_x_array[current_index] = T_x
-    vel_x_array[current_index] = vel_x
-    rho_x_array[current_index] = rho_x
-    error_final_array[current_index] = error_final
-
-    P_x = P_final
-    rho_x = rho_final
-    vel_x = vel_final
-    T_x = T_out
-    segment = segment + dx
-    current_index = current_index+1
-
-'''
-
-change here after brkfast
-    # for i in range(len(P_new)):                                                 #Pnew = keep vel head const
-    #     rho_new[i] = Momentum_Eqn(P_x, rho_x, G, f_x, D, dx, P_new[i])
-    #     T_new[i] = Eqn_of_State(P_new[i], rho_new[i])
-    #     error[i] = abs(T_new[i] - T_out)
-
-    # for i in range(len(error)):
-    #     index = np.argmin(error)
-    # error_final = error[index]
-    # P_final = P_new[index]
-    # rho_final = rho_new[index]
-    # vel_final = G / rho_final
-'''        
 
 
-        
-plt.figure(1)
 
-plt.plot(segment_array, P_x_array, label='P_x')
-plt.xlabel('Segment')
-plt.ylabel('P_x')
-plt.legend()
-
-plt.figure(2)
-plt.plot(segment_array, T_x_array, label='T_x')
-plt.xlabel('Segment')
-plt.ylabel('T_x')
-plt.legend()
-
-plt.figure(3)
-plt.plot(segment_array, vel_x_array, label='vel_x')
-plt.xlabel('Segment')
-plt.ylabel('vel_x')
-plt.legend()
-
-plt.figure(4)
-plt.plot(segment_array, rho_x_array, label='rho_x')
-plt.xlabel('Segment')
-plt.ylabel('rho_x')
-plt.legend()
+Cp = Cp_fluid(P_x, rho_x)
+k = Thermal_conducitvity(P_x, rho_x)
+mu = Viscosity(P_x, rho_x)
+Pr = Prandtl_number(Cp, mu, k)
+Re_x = Reynolds_number(G, dx, mu)
+f_x = colebrook_equation(Re_x, Epsilon, D)
+Nu = Gnielinski(f_x, Re_x, Pr)
+h = k * Nu / D
+A_pipe_element = (math.pi * D) * dx
+T_out = T_surface - ((T_surface - T_x) * math.exp(-(h * A_pipe_element) / (mdot * Cp)))
 
 
-# Plotting the error_final along the segment variable
-plt.figure(5)
-plt.plot(segment_array, error_final_array, label='error_final') 
-plt.xlabel('Segment')
-plt.ylabel('Error Final')
-plt.grid()
-plt.legend()
-plt.show()
+P1 = P_x-(0.5e5)
+P2 = P_x+(0.5e5)
+i = 0
+P_xdx = Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i)
+rho_xdx = Eqn_of_State(P_xdx,T_out)
+vel_xdx = G/rho_xdx
