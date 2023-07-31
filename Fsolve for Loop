@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Mon Jul 31 01:47:07 2023
+
+@author: S335830
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Fri Jul 28 02:00:09 2023
 
 @author: S335830
@@ -84,7 +91,6 @@ P_x_array = np.zeros(int(pipe_elements))
 T_x_array = np.zeros(int(pipe_elements))
 vel_x_array = np.zeros(int(pipe_elements))
 rho_x_array = np.zeros(int(pipe_elements))
-error_final_array = np.zeros(int(pipe_elements))
 current_index = 0
 
 P_x = 4671233.159988396
@@ -105,8 +111,20 @@ while (segment < pipe_elements) and (current_index<pipe_elements):
     T_xdx = Asymptotic_T_increase(Nu, D, k, dx, T_surface, mdot, Cp)
     initial_guess = [P_x, rho_x]
     result = fsolve(equations, initial_guess)
+
+    
+    Pipe_Length[current_index] = segment
+    P_x_array[current_index] = P_x
+    T_x_array[current_index] = T_x
+    vel_x_array[current_index] = vel_x
+    rho_x_array[current_index] = rho_x
+    
     P_xdx,Rho_xdx = result
     Vel_xdx = G/Rho_xdx
     P_x = P_xdx
     T_x = T_xdx
+    
+    segment = segment + dx
+    current_index = current_index + 1
+    
     
