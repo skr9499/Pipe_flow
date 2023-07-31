@@ -1,0 +1,60 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Jul 30 23:24:30 2023
+
+@author: S335830
+"""
+
+#k = 28
+#A = 0.01*0.1
+#dt = 0.05/2
+#T_mhg = 1200
+#T_mcg = 100
+#Heat = k*A*(T_mhg-T_mcg)/dt 
+
+
+
+
+def Fourier_Heat(k,A,dt,eta,T_m,T_x):
+    Heat = (k*A*eta*(T_m-T_x)/dt)
+    return Heat
+
+def Increment_Temp(Fourier_Heat,mdot,Cp,T_x):
+    T_xdx = T_x+(Fourier_Heat/(mdot*Cp))
+    return T_xdx
+
+def Cp_fluid(P_x, T_x):
+    Cp = cp('C', 'P', P_x, 'T', T_x, 'Hydrogen')
+    return Cp
+
+T_m = 1200
+mdot = 5
+eta = 0.8
+T_x = 25
+dt = 0.05/2
+dx = 0.01
+D = 10e-2
+A_strip_projected_to_Nozzle = D*dx
+K = 28.4
+P_x = 20e5
+L_pipe = 30
+pipe_elements = L_pipe/dx
+
+segment = 0.00
+Pipe_Length = np.zeros(int(pipe_elements))
+P_x_array = np.zeros(int(pipe_elements))
+T_x_array = np.zeros(int(pipe_elements))
+vel_x_array = np.zeros(int(pipe_elements))
+rho_x_array = np.zeros(int(pipe_elements))
+error_final_array = np.zeros(int(pipe_elements))
+current_index = 0
+
+while (segment < pipe_elements) and (current_index<pipe_elements):
+    T_x_array[current_index] = T_x
+    Cp = Cp_fluid(P_x, T_x)
+    Heat = Fourier_Heat(K, A_strip_projected_to_Nozzle, dt,eta, T_m, T_x)
+    T_xdx = Increment_Temp(Heat, mdot, Cp, T_x)
+    T_x = T_xdx
+    
+    segment = segment + dx
+    current_index = current_index + 1
