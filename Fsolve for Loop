@@ -79,7 +79,7 @@ A_pipe = math.pi * (D ** 2) / 4
 G = mdot / A_pipe
 Epsilon = 0.3853e-6
 dx = 0.01
-L_pipe = 0.5  
+L_pipe = 2.5 
 pipe_elements = L_pipe / dx
 T_surface = 1200
 
@@ -99,7 +99,7 @@ rho_x = Eqn_of_State(P_x, T_x)
 vel_x = G / rho_x
 
 while (segment < pipe_elements) and (current_index<pipe_elements):
-
+    
     mu = Viscosity(P_x, T_x)
     Cp = Cp_fluid(P_x, T_x)
     k = Thermal_conducitvity(P_x, T_x)
@@ -121,10 +121,48 @@ while (segment < pipe_elements) and (current_index<pipe_elements):
     
     P_xdx,Rho_xdx = result
     Vel_xdx = G/Rho_xdx
+     
     P_x = P_xdx
     T_x = T_xdx
+    rho_x = Rho_xdx
+    vel_x = Vel_xdx
     
     segment = segment + dx
     current_index = current_index + 1
+    
+plt.figure(1)
+
+plt.plot(Pipe_Length, P_x_array, label='P_x')
+plt.xlabel('Segment')
+plt.ylabel('P_x')
+plt.legend()
+
+plt.figure(2)
+plt.plot(Pipe_Length, T_x_array, label='T_x')
+plt.xlabel('Segment')
+plt.ylabel('T_x')
+plt.legend()
+
+plt.figure(3)
+plt.plot(Pipe_Length, vel_x_array, label='vel_x')
+plt.xlabel('Segment')
+plt.ylabel('vel_x')
+plt.legend()
+
+plt.figure(4)
+plt.plot(Pipe_Length, rho_x_array, label='rho_x')
+plt.xlabel('Segment')
+plt.ylabel('rho_x')
+plt.legend()
+
+
+# # Plotting the error_final along the segment variable
+# plt.figure(5)
+# plt.plot(Pipe_Length, error_final_array, label='error_final') 
+# plt.xlabel('Segment')
+# plt.ylabel('Error Final')
+# plt.grid()
+# plt.legend()
+# plt.show()
     
     
