@@ -34,6 +34,13 @@ def Cp_fluid(P_x, rho_x):
     Cp = cp('C', 'P', P_x, 'D', rho_x, 'Hydrogen')
     return Cp
 
+def Speed_of_Sound(P_x,rho_x):
+    a = cp('A', 'P', P_x, 'D', rho_x, 'Hydrogen')
+    return a
+def Entropy(P_x,rho_x):
+    S = cp('S', 'P', P_x, 'D', rho_x, 'Hydrogen')
+    return S
+
 def Thermal_conducitvity(P_x, rho_x):
     k = cp('L', 'P', P_x, 'D', rho_x, 'Hydrogen')
     return k
@@ -95,7 +102,7 @@ P_x = 45e5
 T_x = 25
 samples = 10000
 mdot = 37.962
-D = 8e-2
+D = 10e-2
 Epsilon = 0.3853e-6
 A_pipe = math.pi * (D ** 2) / 4
 G = mdot / A_pipe
@@ -109,7 +116,9 @@ segment_array = np.zeros(int(pipe_elements))
 P_x_array = np.zeros(int(pipe_elements))
 T_x_array = np.zeros(int(pipe_elements))
 vel_x_array = np.zeros(int(pipe_elements))
-# Mach_no_array = np.zeros(int(pipe_elements))
+Speed_Sound_array = np.zeros(int(pipe_elements))
+Mach_no_array = np.zeros(int(pipe_elements))
+entropy_array = np.zeros(int(pipe_elements))
 rho_x_array = np.zeros(int(pipe_elements))
 current_index = 0
 
@@ -129,7 +138,10 @@ while ((segment < pipe_elements) and (current_index<pipe_elements)):
     T_x_array[current_index] = T_x
     vel_x_array[current_index] = vel_x
     rho_x_array[current_index] = rho_x
-
+    Speed_Sound_array[current_index]= Speed_of_Sound(P_x, rho_x)
+    Mach_no_array[current_index]= vel_x_array[current_index]/Speed_Sound_array[current_index]
+    entropy_array[current_index] = Entropy(P_x, rho_x)
+    
     P1 = P_x-(0.5e5)
     P2 = P_x+(0.5e5)
     i = 0
@@ -186,6 +198,19 @@ plt.plot(segment_array, rho_x_array, label='rho_x')
 plt.xlabel('Segment')
 plt.ylabel('rho_x')
 plt.legend()
+
+plt.figure(5)
+plt.plot(segment_array, Mach_no_array, label='Mach_no')
+plt.xlabel('Segment')
+plt.ylabel('Mach_no')
+plt.legend()
+
+plt.figure(6)
+plt.plot(segment_array, entropy_array, label='entropy')
+plt.xlabel('Segment')
+plt.ylabel('entropy')
+plt.legend()
+
 
 
 # Plotting the error_final along the segment variable
