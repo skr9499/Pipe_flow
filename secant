@@ -211,6 +211,12 @@ plt.xlabel('Segment')
 plt.ylabel('entropy')
 plt.legend()
 
+plt.figure(7)
+plt.plot(entropy_array, T_x_array, label='Rayleigh_Fanno line')
+plt.xlabel('entropy')
+plt.ylabel('Temperature')
+plt.legend()
+
 
 
 # Plotting the error_final along the segment variable
