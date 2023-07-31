@@ -12,7 +12,10 @@ Created on Sun Jul 30 23:24:30 2023
 #T_mcg = 100
 #Heat = k*A*(T_mhg-T_mcg)/dt 
 
-
+import math
+import numpy as np
+import matplotlib.pyplot as plt
+from CoolProp.CoolProp import PropsSI as cp
 
 
 def Fourier_Heat(k,A,dt,eta,T_m,T_x):
