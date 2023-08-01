@@ -67,6 +67,10 @@ def Eqn_of_State(P_new, T):
     Rho_new = cp('D', 'P', P_new, 'T', T, 'Hydrogen')
     return Rho_new
 
+def Enthalpy(P,T):
+    H = cp('Hmass', 'P', P, 'T', T, 'Hydrogen')
+    return H
+
 def Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i):
     rho1_EOS = Eqn_of_State(P1, T_out)
     rho2_EOS = Eqn_of_State(P2, T_out)
@@ -102,23 +106,26 @@ P_x = 45e5
 T_x = 25
 samples = 10000
 mdot = 37.962
-D = 10e-2
+D = 15e-2
 Epsilon = 0.3853e-6
 A_pipe = math.pi * (D ** 2) / 4
 G = mdot / A_pipe
 rho_x = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
 vel_x = G / rho_x
 dx = 0.01
-L_pipe = 7.33
+L_pipe = 58.65
 pipe_elements = L_pipe / dx
 segment = 0.00
 segment_array = np.zeros(int(pipe_elements))
 P_x_array = np.zeros(int(pipe_elements))
 T_x_array = np.zeros(int(pipe_elements))
 vel_x_array = np.zeros(int(pipe_elements))
+Re_x_array = np.zeros(int(pipe_elements))
 Speed_Sound_array = np.zeros(int(pipe_elements))
 Mach_no_array = np.zeros(int(pipe_elements))
 entropy_array = np.zeros(int(pipe_elements))
+enthalpy_array = np.zeros(int(pipe_elements))
+h_array = np.zeros(int(pipe_elements))
 rho_x_array = np.zeros(int(pipe_elements))
 current_index = 0
 
@@ -138,10 +145,12 @@ while ((segment < pipe_elements) and (current_index<pipe_elements)):
     T_x_array[current_index] = T_x
     vel_x_array[current_index] = vel_x
     rho_x_array[current_index] = rho_x
+    Re_x_array[current_index] = Re_x
     Speed_Sound_array[current_index]= Speed_of_Sound(P_x, rho_x)
     Mach_no_array[current_index]= vel_x_array[current_index]/Speed_Sound_array[current_index]
     entropy_array[current_index] = Entropy(P_x, rho_x)
-    
+    enthalpy_array[current_index] = Enthalpy(P_x,T_out)
+    h_array[current_index] = h
     P1 = P_x-(0.5e5)
     P2 = P_x+(0.5e5)
     i = 0
@@ -206,15 +215,33 @@ plt.ylabel('Mach_no')
 plt.legend()
 
 plt.figure(6)
+plt.plot(segment_array, Re_x_array, label='Reynolds Number')
+plt.xlabel('Segment')
+plt.ylabel('Reynolds Number')
+plt.legend()
+
+plt.figure(7)
 plt.plot(segment_array, entropy_array, label='entropy')
 plt.xlabel('Segment')
 plt.ylabel('entropy')
 plt.legend()
 
-plt.figure(7)
+plt.figure(8)
+plt.plot(segment_array, enthalpy_array, label='enthalpy')
+plt.xlabel('Segment')
+plt.ylabel('enthalpy')
+plt.legend()
+
+plt.figure(9)
 plt.plot(entropy_array, T_x_array, label='Rayleigh_Fanno line')
 plt.xlabel('entropy')
 plt.ylabel('Temperature')
+plt.legend()
+
+plt.figure(10)
+plt.plot(segment_array, h_array, label='Convective heat transfer')
+plt.xlabel('Length')
+plt.ylabel('convective heat transfer')
 plt.legend()
 
 
