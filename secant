@@ -10,7 +10,9 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from CoolProp.CoolProp import PropsSI as cp
-
+from matplotlib import cm
+from matplotlib.colors import LogNorm
+from matplotlib import colors
 #=====================================================================================================#
 def colebrook_equation(Re, epsilon, D):
     f = 0.05                                                                    # Initial guess for friction factor
@@ -30,6 +32,10 @@ def Reynolds_number(G, dx, viscosity):
     Re = (G * dx) / viscosity
     return Re
 
+def Viscosity(P_x, rho_x):
+    Viscosity = cp('V', 'P', P_x, 'D', rho_x, 'Hydrogen')
+    return Viscosity
+
 def Cp_fluid(P_x, rho_x):
     Cp = cp('C', 'P', P_x, 'D', rho_x, 'Hydrogen')
     return Cp
@@ -45,10 +51,6 @@ def Thermal_conducitvity(P_x, rho_x):
     k = cp('L', 'P', P_x, 'D', rho_x, 'Hydrogen')
     return k
 
-def Viscosity(P_x, rho_x):
-    Viscosity = cp('V', 'P', P_x, 'D', rho_x, 'Hydrogen')
-    return Viscosity
-
 def Prandtl_number(cp, mu, k):
     Prandtl_number = (cp * mu) / k
     return Prandtl_number
@@ -63,6 +65,10 @@ def Momentum_Eqn(P_x, rho_x, G, f_x, D, dx, P_new):
     rho_new = 1 / spec_vol_new
     return rho_new
 
+def Frictional_Headloss(rho_x, G, f_x, D, dx):
+    P_drop = f_x*(G**2)*(dx/D)/(2*rho_x)
+    return P_drop
+
 def Eqn_of_State(P_new, T):
     Rho_new = cp('D', 'P', P_new, 'T', T, 'Hydrogen')
     return Rho_new
@@ -70,6 +76,7 @@ def Eqn_of_State(P_new, T):
 def Enthalpy(P,T):
     H = cp('Hmass', 'P', P, 'T', T, 'Hydrogen')
     return H
+
 
 def Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i):
     rho1_EOS = Eqn_of_State(P1, T_out)
@@ -97,10 +104,13 @@ def Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i):
     else:
         print("Soln P_xdx not found after 20 iterations")
     return float(P3)
-    
+
+def Energy_Eqn(h_x,G,rho_x):
+    h0 = h_x + ((G**2)/2*rho_x)
+    return h0
 
 
-    
+ 
 T_surface = 1200
 P_x = 45e5
 T_x = 25
@@ -111,6 +121,7 @@ Epsilon = 0.3853e-6
 A_pipe = math.pi * (D ** 2) / 4
 G = mdot / A_pipe
 rho_x = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
+P_int = P_x +((G**2)/rho_x)
 vel_x = G / rho_x
 dx = 0.01
 L_pipe = 58.65
@@ -118,15 +129,20 @@ pipe_elements = L_pipe / dx
 segment = 0.00
 segment_array = np.zeros(int(pipe_elements))
 P_x_array = np.zeros(int(pipe_elements))
+P_drop_array_friction = np.zeros(int(pipe_elements))
 T_x_array = np.zeros(int(pipe_elements))
 vel_x_array = np.zeros(int(pipe_elements))
 Re_x_array = np.zeros(int(pipe_elements))
+Viscosity_array = np.zeros(int(pipe_elements))
 Speed_Sound_array = np.zeros(int(pipe_elements))
 Mach_no_array = np.zeros(int(pipe_elements))
 entropy_array = np.zeros(int(pipe_elements))
 enthalpy_array = np.zeros(int(pipe_elements))
 h_array = np.zeros(int(pipe_elements))
 rho_x_array = np.zeros(int(pipe_elements))
+cp_array = np.zeros(int(pipe_elements))
+# h_stag_array = np.zeros(int(pipe_elements))
+# T0_array = np.zeros(int(pipe_elements))
 current_index = 0
 
 while ((segment < pipe_elements) and (current_index<pipe_elements)):
@@ -151,99 +167,144 @@ while ((segment < pipe_elements) and (current_index<pipe_elements)):
     entropy_array[current_index] = Entropy(P_x, rho_x)
     enthalpy_array[current_index] = Enthalpy(P_x,T_out)
     h_array[current_index] = h
+    cp_array[current_index] = Cp
+    Viscosity_array[current_index] = mu
+    P_drop_array_friction[current_index] = Frictional_Headloss(rho_x, G, f_x, D, dx)
     P1 = P_x-(0.5e5)
     P2 = P_x+(0.5e5)
     i = 0
     P_xdx = Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i)
     rho_xdx = Eqn_of_State(P_xdx,T_out)
     vel_xdx = G/rho_xdx
-    
+    # h_stag_array[current_index]= Energy_Eqn(enthalpy_array[current_index], G, rho_x)
+    # T0_array[current_index] = cp('T', 'P', P_int, 'Hmass', h_stag_array[current_index], 'Hydrogen')
     P_x = P_xdx
     rho_x = rho_xdx
     vel_x = vel_xdx
     T_x = T_out
     segment = segment + dx
     current_index = current_index+1
+       
+P0 = P_xdx + (G**2/rho_xdx)   
+Friction_loss = sum(P_drop_array_friction)
+P_stag = P0 + Friction_loss
 
-'''
-
-change here after brkfast
-    # for i in range(len(P_new)):                                                 #Pnew = keep vel head const
-    #     rho_new[i] = Momentum_Eqn(P_x, rho_x, G, f_x, D, dx, P_new[i])
-    #     T_new[i] = Eqn_of_State(P_new[i], rho_new[i])
-    #     error[i] = abs(T_new[i] - T_out)
-
-    # for i in range(len(error)):
-    #     index = np.argmin(error)
-    # error_final = error[index]
-    # P_final = P_new[index]
-    # rho_final = rho_new[index]
-    # vel_final = G / rho_final
-'''        
-
-
-        
 plt.figure(1)
-
 plt.plot(segment_array, P_x_array, label='P_x')
-plt.xlabel('Segment')
+plt.title('Static Pressure Drop vs Pipe Length')
+plt.xlabel('Pipe Length')
 plt.ylabel('P_x')
 plt.legend()
 
 plt.figure(2)
 plt.plot(segment_array, T_x_array, label='T_x')
-plt.xlabel('Segment')
+plt.title('Static Temperature vs Pipe Length')
+plt.xlabel('Pipe Length')
 plt.ylabel('T_x')
 plt.legend()
 
 plt.figure(3)
 plt.plot(segment_array, vel_x_array, label='vel_x')
-plt.xlabel('Segment')
+plt.title('Velocity vs Pipe Length')
+plt.xlabel('Pipe Length')
 plt.ylabel('vel_x')
 plt.legend()
 
 plt.figure(4)
 plt.plot(segment_array, rho_x_array, label='rho_x')
-plt.xlabel('Segment')
+plt.title('Static Density Drop vs Pipe Length')
+plt.xlabel('Pipe Length')
 plt.ylabel('rho_x')
 plt.legend()
 
 plt.figure(5)
 plt.plot(segment_array, Mach_no_array, label='Mach_no')
-plt.xlabel('Segment')
+plt.title('Pipe Mach No vs Pipe Length')
+plt.xlabel('Pipe Length')
 plt.ylabel('Mach_no')
 plt.legend()
 
 plt.figure(6)
 plt.plot(segment_array, Re_x_array, label='Reynolds Number')
-plt.xlabel('Segment')
+plt.title('Reynolds Number vs Pipe Length')
+plt.xlabel('Pipe Length')
 plt.ylabel('Reynolds Number')
 plt.legend()
 
 plt.figure(7)
 plt.plot(segment_array, entropy_array, label='entropy')
-plt.xlabel('Segment')
+plt.title('Static Entropy vs Pipe Length')
+plt.xlabel('Pipe Length')
 plt.ylabel('entropy')
 plt.legend()
 
 plt.figure(8)
 plt.plot(segment_array, enthalpy_array, label='enthalpy')
-plt.xlabel('Segment')
+plt.title('Static Enthalpy vs Pipe Length')
+plt.xlabel('Pipe Length')
 plt.ylabel('enthalpy')
 plt.legend()
 
 plt.figure(9)
 plt.plot(entropy_array, T_x_array, label='Rayleigh_Fanno line')
-plt.xlabel('entropy')
+plt.title('Rayleigh_Fanno line')
+plt.xlabel('Pipe Length')
 plt.ylabel('Temperature')
 plt.legend()
 
 plt.figure(10)
 plt.plot(segment_array, h_array, label='Convective heat transfer')
-plt.xlabel('Length')
+plt.title('Convective Heat Transfer vs Pipe Length')
+plt.xlabel('Pipe Length')
 plt.ylabel('convective heat transfer')
 plt.legend()
 
+plt.figure(11)
+plt.plot(enthalpy_array, entropy_array, label='Mollier')
+plt.title('Enthalpy vs Entropy')
+plt.xlabel('Entropy')
+plt.ylabel('Enthalpy')
+plt.legend()
+
+plt.figure(12)
+plt.plot(segment_array, P_drop_array_friction, label='Frictional drop in 1 cm pipe')
+plt.title('Fricitional Drop vs Pipe Length')
+plt.xlabel('Pipe Length')
+plt.ylabel('Frictional drop (Pa)')
+plt.legend()
+
+plt.figure(13)
+plt.plot(segment_array, cp_array, label='Cp_array')
+plt.title('Specific Heat Const Pressure vs Pipe Length')
+plt.xlabel('Pipe Length')
+plt.ylabel('Cp_array')
+plt.legend()
+
+plt.figure(14)
+plt.plot(segment_array, Viscosity_array, label='Viscosity_array')
+plt.title('Viscosity vs Pipe Length')
+plt.xlabel('Pipe Length')
+plt.ylabel('Viscosity_array')
+plt.legend()
 
 
-# Plotting the error_final along the segment variable
+plt.figure(15)
+custom_breakpoints = np.linspace(min(rho_x_array),max(rho_x_array),10)
+cmap = plt.get_cmap('plasma')
+norm = colors.BoundaryNorm(custom_breakpoints, cmap.N)
+
+# Create the scatter plot with custom color map and norm
+fig, ax = plt.subplots()
+sc = ax.scatter(T_x_array, P_x_array, c=rho_x_array, cmap=cmap, norm=norm)
+plt.title('Density Change vs Pipe Length')
+
+# Set axis labels
+ax.set_xlabel('Temperature (K)')
+ax.set_ylabel('Pressure (Pa)')
+
+# Add a colorbar to indicate density values
+cbar = plt.colorbar(sc)
+cbar.set_label('Density')
+
+
+
