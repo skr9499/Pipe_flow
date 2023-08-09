@@ -113,10 +113,10 @@ def Energy_Eqn(h_x,G,rho_x):
  
 T_surface = 1200
 P_x = 45e5
-T_x = 95
+T_x = 100
 samples = 10000
-mdot = 10
-D = 40e-2
+mdot = 270
+D = 15e-2
 Epsilon = 0.3853e-6
 A_pipe = math.pi * (D ** 2) / 4
 G = mdot / A_pipe
@@ -124,7 +124,7 @@ rho_x = cp('D', 'P', P_x, 'T', T_x, 'Oxygen')
 P_int = P_x +((G**2)/rho_x)
 vel_x = G / rho_x
 dx = 0.01
-L_pipe = 3
+L_pipe = 10
 pipe_elements = L_pipe / dx
 segment = 0.00
 segment_array = np.zeros(int(pipe_elements))
