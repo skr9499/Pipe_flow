@@ -86,6 +86,7 @@ def Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i):
     Error1 = rho1_EOS - rho_momentum1
     Error2 = rho2_EOS - rho_momentum2
     P3 = P2 - (((P1-P2)*Error2)/(Error1-Error2))
+    print(f"P1 is: {P1},{i}")
     print(f"P2 is: {P2},{i}")
     print(f"P3 is {P3},{i}")
     rho3_EOS = Eqn_of_State(P3, T_out)          
@@ -116,7 +117,7 @@ P_x = 45e5
 T_x = 25
 samples = 10000
 mdot = 37.962
-D = 15e-2
+D = 10e-2
 Epsilon = 0.3853e-6
 A_pipe = math.pi * (D ** 2) / 4
 G = mdot / A_pipe
@@ -124,7 +125,7 @@ rho_x = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
 P_int = P_x +((G**2)/rho_x)
 vel_x = G / rho_x
 dx = 0.01
-L_pipe = 58.65
+L_pipe = 7.34
 pipe_elements = L_pipe / dx
 segment = 0.00
 segment_array = np.zeros(int(pipe_elements))
@@ -248,7 +249,7 @@ plt.legend()
 plt.figure(9)
 plt.plot(entropy_array, T_x_array, label='Rayleigh_Fanno line')
 plt.title('Rayleigh_Fanno line')
-plt.xlabel('Pipe Length')
+plt.xlabel('Entropy')
 plt.ylabel('Temperature')
 plt.legend()
 
@@ -305,6 +306,3 @@ ax.set_ylabel('Pressure (Pa)')
 # Add a colorbar to indicate density values
 cbar = plt.colorbar(sc)
 cbar.set_label('Density')
-
-
-
