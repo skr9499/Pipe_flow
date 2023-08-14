@@ -9,8 +9,8 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 
-P_lower = 45e5
-P_upper = 49e5
+P_lower = 46e5
+P_upper = 48e5
 data_samples = 10
 T_lower = 12
 T_upper = 25
@@ -41,7 +41,7 @@ for i in range(len(P_Matrix)):
         e1[i][j] = 100*abs((H_tank-Enthalpy_Matrix[i][j]-(((G/Rho_Matrix[i][j])**2)/2))/H_tank)
         e2[i][j] = 100*abs((P_tank-P_Matrix[i]-((G**2)/Rho_Matrix[i][j]))/P_tank)
         Errorfunction[i][j] = e1[i][j]+e2[i][j]
-        Solver_table[k] = [P_Matrix[i], T_Matrix[j], Rho_Matrix[i][j], Enthalpy_Matrix[i, j],e1[i][j],e2[i][j],Errorfunction[i][j]]  # Assign values to Therm_Table
+        Solver_table[k] = [P_Matrix[i], T_Matrix[j], Rho_Matrix[i][j], Enthalpy_Matrix[i][j],e1[i][j],e2[i][j],Errorfunction[i][j]]  # Assign values to Therm_Table
         k += 1  # Increment the index
 
 
@@ -64,11 +64,12 @@ index_e2 = np.argmin(e2_column)
 P_least_error_HEAD = P_column[index_e2]
 T_least_error_Head = T_column[index_e2]
 rho_least_error_head = cp('D', 'P', P_least_error_HEAD, 'T', T_least_error_Head, 'Hydrogen')
-plt.plot(Total_error_coulmn, label='Total error',color='blue')
-plt.plot(e1_column, label='energy error',color='green')
+plt.plot(Total_error_coulmn, label='Total error',color='red')
+plt.plot(e1_column, label='energy error',color='blue',linestyle='dotted')
 plt.plot(e2_column, label='pressure error',color='magenta')
 
 plt.xlabel('Index')
 plt.ylabel('Error')
+plt.legend()
 plt.title('Error vs Index')
 
