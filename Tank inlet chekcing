@@ -1,0 +1,23 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Aug 14 07:12:21 2023
+
+@author: S335830
+"""
+from CoolProp.CoolProp import PropsSI as cp
+import numpy as np
+import math
+import matplotlib.pyplot as plt
+P_tank = 50e5
+T_tank = 25
+H_tank = cp('Hmass', 'P', P_tank, 'T', T_tank, 'Hydrogen')
+mdot = 73.385
+d = 8e-2
+A = math.pi * (d ** 2) / 4
+G = mdot/A
+P_x = 18.56e5
+T_x = 25
+D_x = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
+H_x = cp('Hmass', 'P', P_x, 'T', T_x, 'Hydrogen')
+f1 = (H_tank - H_x -(((G/D_x)**2)/2))/H_tank
+f2 = (P_tank - P_x -((G**2)/D_x))/P_tank
