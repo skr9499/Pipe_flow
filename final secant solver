@@ -73,12 +73,31 @@ def Eqn_of_State(P_new, T):
     Rho_new = cp('D', 'P', P_new, 'T', T, 'Hydrogen')
     return Rho_new
 
+def EOS_PD(P,Rho):
+    T = cp('T', 'P', P, 'D', Rho, 'Hydrogen')
+    return T
+
 def Enthalpy(P,T):
     H = cp('Hmass', 'P', P, 'T', T, 'Hydrogen')
     return H
+def Solver2(T_out,P_x,rho_x,G,f_x,D,dx,ExpectedP_drop):
+    P_start = ExpectedP_drop
+    samples = 300
+    PossibleP = np.linspace(P_start,P_x,samples)
+    Possible_Rho = np.zeros(samples)
+    PossibleT = np.zeros(samples)
+    errorT = np.zeros(samples)
+    for o in range(len(PossibleP)):
+        Possible_Rho[o] =Momentum_Eqn(P_x, rho_x, G, f_x, D, dx, PossibleP[o])
+        PossibleT[o] = EOS_PD(PossibleP[o], Possible_Rho[o])
+        errorT[o] = abs(PossibleT[o]-T_out)
+    plug = np.argmin(errorT)
+    # Error_final = errorT[plug]
+    P_final = PossibleP[plug]
+    return P_final
+    
 
-
-def Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i):
+def Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i,ExpectedP_drop):
     rho1_EOS = Eqn_of_State(P1, T_out)
     rho2_EOS = Eqn_of_State(P2, T_out)
     rho_momentum1 = Momentum_Eqn(P_x, rho_x, G, f_x, D, dx, P1)
@@ -89,17 +108,15 @@ def Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i):
     rho3_EOS = Eqn_of_State(P3, T_out)          
     rho3_momentum = Momentum_Eqn(P_x, rho_x, G, f_x, D, dx, P3)
     Error3 = abs(rho3_EOS - rho3_momentum)    
-    print(f"Before fucking Error = {Error3} after {i} iteration {Error3} in the domain of P1 = {P1} and P2 = {P2} giving P3 = {P3}")
+    # print(f"Before fucking Error = {Error3} after {i} iteration {Error3} in the domain of P1 = {P1} and P2 = {P2} giving P3 = {P3}")
     if Error3 < 1e-10 or i >= 25:
         if i >= 25 :
-            # P1 = P_x-4e5
-            # P2 = P_x+0.5e5
-            # P3 = Error(P1,P2,)
-            print(f"Fucked Error for P3 = {P3} after {i} iteration {Error3} in the domain of P1 = {P1} and P2 = {P2}")
-            return False
+            P_final = Solver2(T_out, P_x, rho_x, G, f_x, D, dx, ExpectedP_drop)    
+            print("Solver 2 ")
+            return P_final
         return P3
     
-    return Error(P2,P3,T_out,P_x,rho_x,G,f_x,D,dx,i+1)
+    return Error(P2,P3,T_out,P_x,rho_x,G,f_x,D,dx,i+1,ExpectedP_drop)
 
 def Energy_Eqn(h_x,G,rho_x):
     h0 = h_x + ((G**2)/2*rho_x)
@@ -120,8 +137,8 @@ rho_x = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
 P_int = P_x +((G**2)/rho_x)
 vel_x = G / rho_x
 dx = 0.01
-L_pipe = 0.8
-pipe_elements = L_pipe / dx
+L_pipe = 0.58
+pipe_elements = L_pipe / dx 
 segment = 0.00
 segment_array = np.zeros(int(pipe_elements))
 P_x_array = np.zeros(int(pipe_elements))
@@ -140,6 +157,7 @@ cp_array = np.zeros(int(pipe_elements))
 # h_stag_array = np.zeros(int(pipe_elements))
 # T0_array = np.zeros(int(pipe_elements))
 current_index = 0
+ExpectedP_drop = 0.5e5
 
 while ((segment < pipe_elements) and (current_index<pipe_elements)):
     Cp = Cp_fluid(P_x, rho_x)
@@ -169,9 +187,11 @@ while ((segment < pipe_elements) and (current_index<pipe_elements)):
     P1 = P_x-(0.5e5)
     P2 = P_x+(0.5e5)
     i = 0
-    P_xdx = Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i)
+    P_xdx = Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i,ExpectedP_drop)
     rho_xdx = Eqn_of_State(P_xdx,T_out)
     vel_xdx = G/rho_xdx
+    Pdrop = P_x-P_xdx
+    ExpectedP_drop = 3*Pdrop
     # h_stag_array[current_index]= Energy_Eqn(enthalpy_array[current_index], G, rho_x)
     # T0_array[current_index] = cp('T', 'P', P_int, 'Hmass', h_stag_array[current_index], 'Hydrogen')
     P_x = P_xdx
