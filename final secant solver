@@ -5,13 +5,11 @@ Created on Thu Jul 20 09:07:59 2023
 
 @author: sreekrishnaravishankar
 """
-
+#chk 117  116line
 import math
 import numpy as np
 import matplotlib.pyplot as plt
 from CoolProp.CoolProp import PropsSI as cp
-from matplotlib import cm
-from matplotlib.colors import LogNorm
 from matplotlib import colors
 #=====================================================================================================#
 def colebrook_equation(Re, epsilon, D):
@@ -94,6 +92,7 @@ def Solver2(T_out,P_x,rho_x,G,f_x,D,dx,ExpectedP_drop):
     plug = np.argmin(errorT)
     # Error_final = errorT[plug]
     P_final = PossibleP[plug]
+    print(P_final)
     return P_final
     
 
@@ -111,10 +110,11 @@ def Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i,ExpectedP_drop):
     # print(f"Before fucking Error = {Error3} after {i} iteration {Error3} in the domain of P1 = {P1} and P2 = {P2} giving P3 = {P3}")
     if Error3 < 1e-10 or i >= 25:
         if i >= 25 :
+            print(f"{P3} fucked")
             P_final = Solver2(T_out, P_x, rho_x, G, f_x, D, dx, ExpectedP_drop)    
             print("Solver 2 ")
             return P_final
-        return P3
+        return P3 #p3 is going inside recursive loop.
     
     return Error(P2,P3,T_out,P_x,rho_x,G,f_x,D,dx,i+1,ExpectedP_drop)
 
@@ -137,7 +137,7 @@ rho_x = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
 P_int = P_x +((G**2)/rho_x)
 vel_x = G / rho_x
 dx = 0.01
-L_pipe = 0.58
+L_pipe = 0.2
 pipe_elements = L_pipe / dx 
 segment = 0.00
 segment_array = np.zeros(int(pipe_elements))
@@ -194,6 +194,7 @@ while ((segment < pipe_elements) and (current_index<pipe_elements)):
     ExpectedP_drop = 3*Pdrop
     # h_stag_array[current_index]= Energy_Eqn(enthalpy_array[current_index], G, rho_x)
     # T0_array[current_index] = cp('T', 'P', P_int, 'Hmass', h_stag_array[current_index], 'Hydrogen')
+    print(f"{P_xdx} is the pressure after {current_index} index and {segment} and segment")
     P_x = P_xdx
     rho_x = rho_xdx
     vel_x = vel_xdx
