@@ -85,9 +85,9 @@ def Enthalpy(P,T):
     H = cp('Hmass', 'P', P, 'T', T, 'Hydrogen')
     return H
 def Solver2(T_out,P_x,rho_x,G,f_x,D,dx,ExpectedP_drop):
-    P_start = ExpectedP_drop
+    P_start = P_x-ExpectedP_drop
     print(P_start)
-    samples = 600
+    samples = 300
     PossibleP = np.linspace(P_start,P_x,samples)
     Possible_Rho = np.zeros(samples)
     PossibleT = np.zeros(samples)
@@ -97,7 +97,8 @@ def Solver2(T_out,P_x,rho_x,G,f_x,D,dx,ExpectedP_drop):
         PossibleT[o] = EOS_PD(PossibleP[o], Possible_Rho[o])
         errorT[o] = abs(PossibleT[o]-T_out)
     plug = np.argmin(errorT)
-    # Error_final = errorT[plug]
+    Error_final = errorT[plug]
+    print(Error_final)
     P_final = PossibleP[plug]
     print(P_final)
     print("Solver2")
@@ -112,6 +113,8 @@ def Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i,ExpectedP_drop):
     Error1 = rho1_EOS - rho_momentum1
     Error2 = rho2_EOS - rho_momentum2
     P3 = P2 - (((P1-P2)*Error2)/(Error1-Error2))
+    if P3<0:
+        P3 = P_x-2e5
     rho3_EOS = Eqn_of_State(P3, T_out)          
     rho3_momentum = Momentum_Eqn(P_x, rho_x, G, f_x, D, dx, P3)
     Error3 = abs(rho3_EOS - rho3_momentum)    
@@ -131,7 +134,7 @@ def Energy_Eqn(h_x,G,rho_x):
 
 
 T_surface = 1200
-P_x = 45e5
+P_x = 46.74e5
 T_x = 25
 samples = 10000
 mdot = 37.962
@@ -143,7 +146,7 @@ rho_x = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
 P_int = P_x +((G**2)/rho_x)
 vel_x = G / rho_x
 dx = 0.01
-L_pipe = 7.35
+L_pipe = 7.94
 pipe_elements = L_pipe / dx 
 segment = 0.00
 segment_array = np.zeros(int(pipe_elements))
@@ -163,7 +166,8 @@ cp_array = np.zeros(int(pipe_elements))
 # h_stag_array = np.zeros(int(pipe_elements))
 # T0_array = np.zeros(int(pipe_elements))
 current_index = 0
-delP = 0.5e5
+ExpectedP_drop = 0.5e5
+
 
 while ((segment < pipe_elements) and (current_index<pipe_elements)):
     Cp = Cp_fluid(P_x, rho_x)
@@ -193,11 +197,11 @@ while ((segment < pipe_elements) and (current_index<pipe_elements)):
     P1 = P_x-(0.5e5)
     P2 = P_x+(0.5e5)
     i = 0
-    P_xdx = Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i,delP)
+    P_xdx = Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i,ExpectedP_drop)
     rho_xdx = Eqn_of_State(P_xdx,T_out)
     vel_xdx = G/rho_xdx
     delP = P_x-P_xdx
-    ExpectedP_drop = 3*delP
+    ExpectedP_drop = 25*delP
     # h_stag_array[current_index]= Energy_Eqn(enthalpy_array[current_index], G, rho_x)
     # T0_array[current_index] = cp('T', 'P', P_int, 'Hmass', h_stag_array[current_index], 'Hydrogen')
     # print(f"{P_xdx} is the pressure after {current_index} index and {segment} and segment")
@@ -209,8 +213,9 @@ while ((segment < pipe_elements) and (current_index<pipe_elements)):
     current_index = current_index+1
        
 P0 = P_xdx + (G**2/rho_xdx)   
-Friction_loss = sum(P_drop_array_friction)
-P_stag = P0 + Friction_loss
+
+Friction_loss = np.cumsum(P_drop_array_friction)
+P_stag = P0 + sum(P_drop_array_friction)
 
 
 plt.style.use(['science','ieee'])
@@ -280,29 +285,29 @@ plt.ylabel('Temperature')
 
 
 plt.figure(10)
-plt.plot(segment_array, h_array)
+plt.plot(segment_array, h_array/1e3)
 plt.title('Convective Heat Transfer vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
-plt.ylabel('convective heat transfer')
+plt.ylabel('convective heat transfer (kW/m2K')
 
 
 plt.figure(11)
-plt.plot(enthalpy_array, entropy_array)
+plt.plot(enthalpy_array/1e3, entropy_array/1e3)
 plt.title('Enthalpy vs Entropy')
-plt.xlabel('Entropy')
-plt.ylabel('Enthalpy')
+plt.xlabel('Entropy (kJ/kgK)')
+plt.ylabel('Enthalpy (kJ/kgK)')
 
 
 plt.figure(12)
-plt.plot(segment_array, P_drop_array_friction)
-plt.title('Fricitional Drop vs Pipe Length')
+plt.plot(segment_array, Friction_loss/1e3)
+plt.title('Darcy Loss of Friction vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
-plt.ylabel('Frictional drop (Pa)')
+plt.ylabel('Frictional drop (kPa)')
 
 
 plt.figure(13)
 plt.plot(segment_array, cp_array)
-plt.title('Specific Heat Const Pressure vs Pipe Length')
+plt.title('Cp vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
 plt.ylabel('Specific Heat')
 
@@ -322,12 +327,12 @@ norm = colors.BoundaryNorm(custom_breakpoints, cmap.N)
 
 # Create the scatter plot with custom color map and norm
 fig, ax = plt.subplots()
-sc = ax.scatter(T_x_array, P_x_array, c=rho_x_array, cmap=cmap, norm=norm)
+sc = ax.scatter(T_x_array, P_x_array/1e5, c=rho_x_array, cmap=cmap, norm=norm)
 plt.title('Density Change vs Pipe Length')
 
 # Set axis labels
 ax.set_xlabel('Temperature (K)')
-ax.set_ylabel('Pressure (Pa)')
+ax.set_ylabel('Pressure (Bar)')
 
 # Add a colorbar to indicate density values
 cbar = plt.colorbar(sc)
