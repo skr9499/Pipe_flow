@@ -85,9 +85,10 @@ def Enthalpy(P,T):
     H = cp('Hmass', 'P', P, 'T', T, 'Hydrogen')
     return H
 def Solver2(T_out,P_x,rho_x,G,f_x,D,dx,ExpectedP_drop):
+    print(f"P_x is {P_x}")
     P_start = P_x-ExpectedP_drop
     print(P_start)
-    samples = 300
+    samples = 1000
     PossibleP = np.linspace(P_start,P_x,samples)
     Possible_Rho = np.zeros(samples)
     PossibleT = np.zeros(samples)
@@ -97,6 +98,7 @@ def Solver2(T_out,P_x,rho_x,G,f_x,D,dx,ExpectedP_drop):
         PossibleT[o] = EOS_PD(PossibleP[o], Possible_Rho[o])
         errorT[o] = abs(PossibleT[o]-T_out)
     plug = np.argmin(errorT)
+    print(plug)
     Error_final = errorT[plug]
     print(Error_final)
     P_final = PossibleP[plug]
@@ -136,7 +138,6 @@ def Energy_Eqn(h_x,G,rho_x):
 T_surface = 1200
 P_x = 46.74e5
 T_x = 25
-samples = 10000
 mdot = 37.962
 D = 10e-2
 Epsilon = 0.3853e-6
@@ -201,7 +202,7 @@ while ((segment < pipe_elements) and (current_index<pipe_elements)):
     rho_xdx = Eqn_of_State(P_xdx,T_out)
     vel_xdx = G/rho_xdx
     delP = P_x-P_xdx
-    ExpectedP_drop = 25*delP
+    ExpectedP_drop = 2e5
     # h_stag_array[current_index]= Energy_Eqn(enthalpy_array[current_index], G, rho_x)
     # T0_array[current_index] = cp('T', 'P', P_int, 'Hmass', h_stag_array[current_index], 'Hydrogen')
     # print(f"{P_xdx} is the pressure after {current_index} index and {segment} and segment")
