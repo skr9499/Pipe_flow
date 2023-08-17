@@ -133,11 +133,11 @@ def Energy_Eqn(h_x,G,rho_x):
 
 
 
-T_surface = 1300
-P_x = 37.61e5
+T_surface = 800
+P_x = 48.73e5
 T_x = 25
-mdot = 73.385
-D = 10e-2
+mdot = 5.946
+D = 5e-2
 Epsilon = 0.3853e-6
 A_pipe = math.pi * (D ** 2) / 4
 G = mdot / A_pipe
@@ -145,7 +145,7 @@ rho_x = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
 P_int = P_x +((G**2)/rho_x)
 vel_x = G / rho_x
 dx = 0.01
-L_pipe = 02.6
+L_pipe = 7.59
 pipe_elements = L_pipe / dx 
 segment = 0.00
 segment_array = np.zeros(int(pipe_elements))
