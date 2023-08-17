@@ -8,11 +8,12 @@ from CoolProp.CoolProp import PropsSI as cp
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+import scienceplots
 
 P_lower = 48.7e5
 P_upper = 49.9e5
-data_samples = 100
-T_lower = 24
+data_samples = 10
+T_lower = 23
 T_upper = 25
 Enthalpy_Matrix = np.zeros((data_samples, data_samples))
 Rho_Matrix = np.zeros((data_samples, data_samples))
@@ -29,11 +30,10 @@ d = 7e-2
 A = math.pi * (d ** 2) / 4
 G = mdot/A
 
-# Generate linearly spaced numbers
+
 P_Matrix = np.linspace(P_lower, P_upper, data_samples)
 T_Matrix = np.linspace(T_lower, T_upper, data_samples)
 
-#Generate enthalphy and viscosity for the generated matrix
 for i in range(len(P_Matrix)):
     for j in range((len(T_Matrix))):
         Enthalpy_Matrix[i,j] = cp('Hmass', 'P', P_Matrix[i], 'T', T_Matrix[j], 'Hydrogen')
@@ -42,7 +42,7 @@ for i in range(len(P_Matrix)):
         e2[i][j] = 100*abs((P_tank-P_Matrix[i]-((G**2)/Rho_Matrix[i][j]))/P_tank)
         Errorfunction[i][j] = (e1[i][j]+e2[i][j])
         Solver_table[k] = [P_Matrix[i], T_Matrix[j], Rho_Matrix[i][j], Enthalpy_Matrix[i][j],e1[i][j],e2[i][j],Errorfunction[i][j]]  # Assign values to Therm_Table
-        k += 1  # Increment the index
+        k += 1
 
 
 P_column = Solver_table[:, 0]
@@ -64,11 +64,16 @@ index_e2 = np.argmin(e2_column)
 P_least_error_HEAD = P_column[index_e2]
 T_least_error_Head = T_column[index_e2]
 rho_least_error_head = cp('D', 'P', P_least_error_HEAD, 'T', T_least_error_Head, 'Hydrogen')
-plt.plot(e3_column, label='Total error',color='red')
-plt.plot(e1_column, label='energy error',color='blue',linestyle='dotted')
-plt.plot(e2_column, label='pressure error',color='magenta')
+Error = e3_column[index_total_error]
+plt.style.use(['science','ieee'])
+plt.rcParams['figure.figsize'] = [6, 4]
+plt.plot(e3_column, label='F(h,rho,P)',color='red')
+plt.plot(e1_column, label='f(h,rho)',color='blue',linestyle='dotted')
+plt.plot(e2_column, label='g(P,rho)',color='magenta')
 
-plt.xlabel('Index')
-plt.ylabel('Error %')
+plt.xlabel('Horizon of guess values')
+plt.ylabel('Percentage F(h,rho,P)')
 plt.legend()
-plt.title('Error vs Index')
+plt.title('F(h,rho,P) vs Horizon of Pressure and Temperature')
+
+print(f'{P_leasterror} is Static Pressure and {T_least_error} is Static Temperature and Error in percentage is {Error}')
