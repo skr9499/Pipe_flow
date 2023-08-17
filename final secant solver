@@ -13,8 +13,6 @@ Created on Thu Jul 20 09:07:59 2023
 """
 #chk 117  116line
 import math
-import numpy as np
-import matplotlib.pyplot as plt
 from CoolProp.CoolProp import PropsSI as cp
 from matplotlib import colors
 #=====================================================================================================#
@@ -56,7 +54,7 @@ def Thermal_conducitvity(P_x, rho_x):
     return k
 
 def Prandtl_number(cp, mu, k):
-    Prandtl_number = (cp * mu) / k
+    Prandtl_number = (cp * mu) /     k
     return Prandtl_number
 
 def Gnielinski(f_x, Re_x, Pr):
@@ -147,7 +145,7 @@ rho_x = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
 P_int = P_x +((G**2)/rho_x)
 vel_x = G / rho_x
 dx = 0.01
-L_pipe = 2.60
+L_pipe = 02.6
 pipe_elements = L_pipe / dx 
 segment = 0.00
 segment_array = np.zeros(int(pipe_elements))
