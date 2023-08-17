@@ -39,7 +39,7 @@ def Reynolds_number(G, dx, viscosity):
 def Viscosity(P_x, rho_x):
     Viscosity = cp('V', 'P', P_x, 'D', rho_x, 'Hydrogen')
     return Viscosity
-
+    
 def Cp_fluid(P_x, rho_x):
     Cp = cp('C', 'P', P_x, 'D', rho_x, 'Hydrogen')
     return Cp
@@ -124,8 +124,8 @@ def Error(P1,P2,T_out,P_x,rho_x,G,f_x,D,dx,i,ExpectedP_drop):
     if Error3<1e-10 and i<25:
         return P3
     elif i > 25:
-        P3 = Solver2(T_out, P_x, rho_x, G, f_x, D, dx, ExpectedP_drop)
-        return P3
+        # P3 = Solver2(T_out, P_x, rho_x, G, f_x, D, dx, ExpectedP_drop)
+        return False
     else:
         return Error(P2,P3,T_out,P_x,rho_x,G,f_x,D,dx,i+1,ExpectedP_drop)
 
@@ -135,10 +135,10 @@ def Energy_Eqn(h_x,G,rho_x):
 
 
 
-T_surface = 1200
-P_x = 46.74e5
+T_surface = 1300
+P_x = 37.61e5
 T_x = 25
-mdot = 37.962
+mdot = 73.385
 D = 10e-2
 Epsilon = 0.3853e-6
 A_pipe = math.pi * (D ** 2) / 4
@@ -147,7 +147,7 @@ rho_x = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
 P_int = P_x +((G**2)/rho_x)
 vel_x = G / rho_x
 dx = 0.01
-L_pipe = 7.94
+L_pipe = 2.60
 pipe_elements = L_pipe / dx 
 segment = 0.00
 segment_array = np.zeros(int(pipe_elements))
@@ -247,7 +247,7 @@ plt.figure(4)
 plt.plot(segment_array, rho_x_array)
 plt.title('Static Density vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
-plt.ylabel('Density')
+plt.ylabel('Density (kg/m3)')
 
 
 plt.figure(5)
@@ -268,7 +268,7 @@ plt.figure(7)
 plt.plot(segment_array, entropy_array)
 plt.title('Static Entropy vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
-plt.ylabel('Entropy')
+plt.ylabel('Entropy (kJ/kgK)')
 
 
 plt.figure(8)
@@ -280,23 +280,23 @@ plt.ylabel('Enthalpy')
 
 plt.figure(9)
 plt.plot(entropy_array, T_x_array)
-plt.title('Rayleigh_Fanno line')
-plt.xlabel('Entropy')
-plt.ylabel('Temperature')
+plt.title('Rayleigh Fanno line')
+plt.xlabel('Entropy (kJ/kgK)')
+plt.ylabel('Temperature (K)')
 
 
 plt.figure(10)
 plt.plot(segment_array, h_array/1e3)
 plt.title('Convective Heat Transfer vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
-plt.ylabel('convective heat transfer (kW/m2K')
+plt.ylabel('Convective heat transfer (kW/m2K)')
 
 
 plt.figure(11)
 plt.plot(enthalpy_array/1e3, entropy_array/1e3)
-plt.title('Enthalpy vs Entropy')
+plt.title('Mollier Curve of Flow Field')
 plt.xlabel('Entropy (kJ/kgK)')
-plt.ylabel('Enthalpy (kJ/kgK)')
+plt.ylabel('Enthalpy (kJ/kg)')
 
 
 plt.figure(12)
@@ -307,10 +307,10 @@ plt.ylabel('Frictional drop (kPa)')
 
 
 plt.figure(13)
-plt.plot(segment_array, cp_array)
+plt.plot(segment_array, cp_array/1e3)
 plt.title('Cp vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
-plt.ylabel('Specific Heat')
+plt.ylabel('Specific Heat kJ/kgK')
 
 
 plt.figure(14)
@@ -337,4 +337,4 @@ ax.set_ylabel('Pressure (Bar)')
 
 # Add a colorbar to indicate density values
 cbar = plt.colorbar(sc)
-cbar.set_label('Density')
+cbar.set_label('Density (kg/m3)')
