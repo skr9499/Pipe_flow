@@ -15,7 +15,7 @@ from matplotlib import colors
 
 P_lower = 1e5
 P_upper = 150e5
-data_samples = 50
+data_samples = 300
 T_lower = 55
 T_upper = 1000
 Enthalpy_Matrix = np.zeros((data_samples, data_samples))
@@ -52,15 +52,16 @@ Enthalphy_column = Therm_Table_noround[:,3]/1e3
 Entropy_column = Therm_Table_noround[:,4]/1e3
 viscosity_column = Therm_Table_noround[:,5]
 thermalConductivity_column = Therm_Table_noround[:,6]
-C_p_column = Therm_Table_noround[:,7]
+C_p_column = Therm_Table_noround[:,7]/1e3
 
 
 
 
-custom_breakpoints_density = [0,0.4,0.8,2,5,20,30,45,60,80,100,300,500,800,1000]
+custom_breakpoints_density = np.linspace((min(Rho_column)),(max(Rho_column)),10)
+# custom_breakpoints_density = [0.01,0.2,0.5,0.8,2,5,10,15,25,35,50,80]
 custom_breakpoints_enthalpy= np.linspace((min(Enthalphy_column)),(max(Enthalphy_column)),10)
 custom_breakpoints_entropy= np.linspace((min(Entropy_column)),(max(Entropy_column)),10)
-custom_breakpoints_viscosity = [6e-6,9e-6, 1.1e-5,1.3e-5,1.9e-5,2.5e-5,3e-5,5e-5,1e-4,6e-4,1e-3]
+custom_breakpoints_viscosity = np.linspace((min(viscosity_column)),(max(viscosity_column)),10)
 custom_breakpoints_thermalconductivity = np.linspace((min(thermalConductivity_column)),(max(thermalConductivity_column)),10)
 custom_breakpoints_Cp = np.linspace((min(C_p_column)),(max(C_p_column)),10)
 
@@ -76,7 +77,7 @@ plt.style.use(['science','ieee'])
 # Create the scatter plot with custom color map and norm
 fig, ax = plt.subplots()
 sc = ax.scatter(T_column, P_column, c=thermalConductivity_column, cmap=cmap, norm=norm_thermal)
-
+plt.title('Thermal Conductivity')
 # Set axis labels
 ax.set_xlabel('Temperature (K)')
 ax.set_ylabel('Pressure (bar)')
@@ -90,7 +91,7 @@ plt.show()
 
 fig, ax = plt.subplots()
 sc = ax.scatter(T_column, P_column, c=Rho_column, cmap=cmap, norm=norm_Density)
-
+plt.title('Density')
 # Set axis labels
 ax.set_xlabel('Temperature (K)')
 ax.set_ylabel('Pressure (bar)')
@@ -108,7 +109,7 @@ sc = ax.scatter(T_column, P_column, c=Enthalphy_column, cmap=cmap, norm=norm_ent
 # Set axis labels
 ax.set_xlabel('Temperature (K)')
 ax.set_ylabel('Pressure (bar)')
-
+plt.title('Enthalpy')
 # Add a colorbar to indicate density values
 cbar = plt.colorbar(sc)
 cbar.set_label('Enthalpy (kJ/kg)')
@@ -122,10 +123,10 @@ sc = ax.scatter(T_column, P_column, c=Entropy_column, cmap=cmap, norm=norm_entro
 # Set axis labels
 ax.set_xlabel('Temperature (K)')
 ax.set_ylabel('Pressure (bar)')
-
+plt.title('Entropy')
 # Add a colorbar to indicate density values
 cbar = plt.colorbar(sc)
-cbar.set_label('Entropy (kJ/Kg.K)')
+cbar.set_label('Entropy (kJ/kg.K)')
 
 # Show the plot
 plt.show()
@@ -136,7 +137,7 @@ sc = ax.scatter(T_column, P_column, c=viscosity_column, cmap=cmap, norm=norm_vis
 # Set axis labels
 ax.set_xlabel('Temperature (K)')
 ax.set_ylabel('Pressure (bar)')
-
+plt.title('Viscosity')
 # Add a colorbar to indicate density values
 cbar = plt.colorbar(sc)
 cbar.set_label('Viscosity (Pa.s)')
@@ -151,6 +152,7 @@ sc = ax.scatter(T_column, P_column, c=C_p_column, cmap=cmap, norm=norm_Cp)
 # Set axis labels
 ax.set_xlabel('Temperature (K)')
 ax.set_ylabel('Pressure (bar)')
+plt.title('Cp')
 
 # Add a colorbar to indicate density values
 cbar = plt.colorbar(sc)
@@ -158,4 +160,3 @@ cbar.set_label('Specific Heat Constant Pressure (kJ/kgK)')
 
 # Show the plot
 plt.show()
-
