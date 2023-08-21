@@ -1,0 +1,23 @@
+Tin = 1200;
+Tout = 600;
+L = linspace(300,400,100);
+d = 15e-2;
+k = 20;
+A = L * d;
+thickness = 5e-2;
+Qdot_Fourier = k * A * (Tin - Tout) / thickness;
+
+mdot = 40;
+cp = 14000;
+Tinlet = 25;
+Toutlet = 50;
+Q_Cp = mdot * cp * (Toutlet - Tinlet);
+
+Error = abs(Qdot_Fourier - Q_Cp);
+
+figure;
+plot(L, Error, 'bo-');
+title('Error vs. Length of Pipe');
+xlabel('Length of Pipe (m)');
+ylabel('Error');
+grid on;
