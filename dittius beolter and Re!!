@@ -180,8 +180,8 @@ while ((segment < pipe_elements) and (current_index<pipe_elements)):
     Pr = Prandtl_number(Cp, mu, k)
     Re_x = Reynolds_number(G, D, mu)
     f_x = colebrook_equation(Re_x, Epsilon, D)
-    Nu = Gnielinski(f_x, Re_x, Pr)
-    # Nu = Dittus_Boelter(Re_x, Pr)
+    #Nu = Gnielinski(f_x, Re_x, Pr)
+    Nu = Dittus_Boelter(Re_x, Pr)
     h = k * Nu / D
     A_pipe_element = (math.pi * D) * dx
     T_out = T_surface - ((T_surface - T_x) * math.exp(-(h * A_pipe_element) / (mdot * Cp)))
