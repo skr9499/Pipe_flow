@@ -350,5 +350,3 @@ ax.set_ylabel('Pressure (Bar)')
 # Add a colorbar to indicate density values
 cbar = plt.colorbar(sc)
 cbar.set_label('Density (kg/m3)')
-
-
