@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Spyder Editor
+
+This is a temporary script file.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import scienceplots
@@ -137,11 +144,11 @@ def Energy_Eqn(h_x,G,rho_x):
 
 
 
-T_surface = 1200
-P_x = 46.74e5
+T_surface = 700
+P_x = 49.31e5
 T_x = 25
-mdot = 37.962
-D = 10e-2
+mdot = 5.946
+D = 6e-2
 Epsilon = 0.3853e-6
 A_pipe = math.pi * (D ** 2) / 4
 G = mdot / A_pipe
@@ -149,7 +156,7 @@ rho_x = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
 P_int = P_x +((G**2)/rho_x)
 vel_x = G / rho_x
 dx = 0.01
-L_pipe = 1.63
+L_pipe = 5
 pipe_elements = L_pipe / dx 
 segment = 0.00
 segment_array = np.zeros(int(pipe_elements))
@@ -157,6 +164,7 @@ P_x_array = np.zeros(int(pipe_elements))
 P_drop_array_friction = np.zeros(int(pipe_elements))
 T_x_array = np.zeros(int(pipe_elements))
 vel_x_array = np.zeros(int(pipe_elements))
+Pr_x_array = np.zeros(int(pipe_elements))
 Re_x_array = np.zeros(int(pipe_elements))
 Viscosity_array = np.zeros(int(pipe_elements))
 Speed_Sound_array = np.zeros(int(pipe_elements))
@@ -178,10 +186,11 @@ while ((segment < pipe_elements) and (current_index<pipe_elements)):
     k = Thermal_conducitvity(P_x, rho_x)
     mu = Viscosity(P_x, rho_x)
     Pr = Prandtl_number(Cp, mu, k)
+    Pr_x_array[current_index] = Pr 
     Re_x = Reynolds_number(G, D, mu)
     f_x = colebrook_equation(Re_x, Epsilon, D)
-    # Nu = Gnielinski(f_x, Re_x, Pr)
-    Nu = Dittus_Boelter(Re_x, Pr)
+    Nu = Gnielinski(f_x, Re_x, Pr)
+    # Nu = Dittus_Boelter(Re_x, Pr)
     h = k * Nu / D
     A_pipe_element = (math.pi * D) * dx
     T_out = h*(T_surface-T_x)*math.pi*D*dx/(mdot*Cp)+T_x
@@ -330,8 +339,13 @@ plt.title('Nusselt Number vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
 plt.ylabel('Nusselt Number')
 
-
 plt.figure(16)
+plt.plot(segment_array, Pr_x_array)
+plt.title('Prandtl Number vs Pipe Length')
+plt.xlabel('Pipe Length (m)')
+plt.ylabel('Prandtl Number')
+
+plt.figure(17)
 custom_breakpoints = np.linspace(min(rho_x_array),max(rho_x_array),10)
 cmap = plt.get_cmap('plasma')
 norm = colors.BoundaryNorm(custom_breakpoints, cmap.N)
