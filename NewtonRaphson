@@ -1,0 +1,85 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Sep 28 22:39:17 2023
+
+@author: S335830
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+import scienceplots
+import math
+from CoolProp.CoolProp import PropsSI as cp
+import CoolProp.CoolProp as CP
+from matplotlib import colors
+
+def Enthalpy(P_x,T_x):
+    H = cp('Hmass', 'P', P_x, 'T', T_x, 'Hydrogen')
+    return H
+
+def Eqn_of_State(P_x, T_x):
+    Rho = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
+    Rho_inv = 1/Rho
+    return Rho_inv
+
+def Energy_Eqn(h0,P_x,T_x,G):
+    f1 = h0 - Enthalpy(P_x, T_x) - (0.5*(G*Eqn_of_State(P_x, T_x))**2)
+    return f1
+
+def H_diff_wrt_P(P_x,T_x):
+    HdiffP=CP.PropsSI('d(Hmass)/d(P)|T','P',P_x,'T',T_x,'Hydrogen')
+    return HdiffP
+
+def H_diff_wrt_T(P_x,T_x):
+    HdiffT=CP.PropsSI('d(Hmass)/d(T)|P','P',P_x,'T',T_x,'Hydrogen')
+    return HdiffT
+
+def Pressure_Eqn(P0,P_x,T_x,G):
+    f2 = P0 - P_x - ((G**2)*(Eqn_of_State(P_x, T_x)))
+    return f2
+
+def D_diff_wrt_T(P_x,T_x):
+    DdiffT = CP.PropsSI('d(D)/d(T)|P','P',P_x,'T',T_x,'Hydrogen')
+    return DdiffT
+
+def D_diff_wrt_P(P_x,T_x):
+    DdiffP = CP.PropsSI('d(D)/d(P)|T','P',P_x,'T',T_x,'Hydrogen')
+    return DdiffP
+
+def Energy_diff_wrt_P(P_x,T_x,G):
+    f1diffP = ((G**2)*((Eqn_of_State(P_x, T_x))**3)*(D_diff_wrt_P(P_x, T_x)))-H_diff_wrt_P(P_x, T_x)
+    return f1diffP
+
+def Energy_diff_wrt_T(P_x,T_x,G):
+    f1diffT = ((G**2)*((Eqn_of_State(P_x, T_x))**3)*(D_diff_wrt_T(P_x, T_x)))-H_diff_wrt_T(P_x, T_x)
+    return f1diffT
+
+def Pressure_diff_wrt_P(P_x,T_x,G):
+    f2diffP = (((G*Eqn_of_State(P_x, T_x))**2)*D_diff_wrt_P(P_x, T_x))-1
+    return f2diffP
+
+def Pressure_diff_wrt_T(P_x,T_x,G):
+    f2diffT = (((G*Eqn_of_State(P_x, T_x))**2)*D_diff_wrt_T(P_x, T_x))
+    return f2diffT
+
+def Jacobian(P_x,T_x,G):
+    f1diffP = Energy_diff_wrt_P(P_x, T_x, G)
+    f1diffT = Energy_diff_wrt_T(P_x, T_x, G)
+    f2diffP = Pressure_diff_wrt_P(P_x, T_x, G)
+    f2diffT = Pressure_diff_wrt_T(P_x, T_x, G)
+    J_Matrix = np.array([[f1diffP,f1diffT],[f2diffP,f2diffT]])
+    J_inv = np.linalg.inv(J_Matrix)
+    return J_inv
+
+def Func_vector(P0,h0,G,P_x,T_x):
+    F = np.array([Energy_Eqn(h0, P_x, T_x, G)],[Pressure_Eqn(P0, P_x, T_x, G)])
+    return F
+
+def NewtonRaphson(P0,h0,P_x,T_x,G):
+    x_n = np.array([P_x],[T_x])
+    x_n_1 = x_n - np.dot(Jacobian(P_x, T_x, G),Func_vector(P0, h0, G, P_x, T_x))
+    
+    
+    
+
+b = CP.PropsSI('d(D)/d(P)|T','P',30e5,'T',150,'Hydrogen')    
