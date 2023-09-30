@@ -7,7 +7,6 @@ Created on Thu Sep 28 22:39:17 2023
 
 import numpy as np
 import matplotlib.pyplot as plt
-import scienceplots
 import math
 from CoolProp.CoolProp import PropsSI as cp
 import CoolProp.CoolProp as CP
@@ -23,7 +22,10 @@ def Eqn_of_State(P_x, T_x):
     return Rho_inv
 
 def Energy_Eqn(h0,P_x,T_x,G):
-    f1 = h0 - Enthalpy(P_x, T_x) - (0.5*(G*Eqn_of_State(P_x, T_x))**2)
+    print(f"This is P_x {P_x} and T_x is {T_x} at Energy Eqn")
+    f1_without_array = h0 - Enthalpy(P_x, T_x) - (0.5*(G*Eqn_of_State(P_x, T_x))**2)
+    f1 = np.array([f1_without_array])
+    print(f"This is f1 {f1}")
     return f1
 
 def H_diff_wrt_P(P_x,T_x):
@@ -35,7 +37,9 @@ def H_diff_wrt_T(P_x,T_x):
     return HdiffT
 
 def Pressure_Eqn(P0,P_x,T_x,G):
+    print(f"This is P_x {P_x} and T_x is {T_x} at Energy Eqn")
     f2 = P0 - P_x - ((G**2)*(Eqn_of_State(P_x, T_x)))
+    print(f"This is f2 {f2}")
     return f2
 
 def D_diff_wrt_T(P_x,T_x):
@@ -62,24 +66,42 @@ def Pressure_diff_wrt_T(P_x,T_x,G):
     f2diffT = (((G*Eqn_of_State(P_x, T_x))**2)*D_diff_wrt_T(P_x, T_x))
     return f2diffT
 
-def Jacobian(P_x,T_x,G):
+def Jacobian(x_n,G):
+    P_x = x_n[0, :]
+    T_x = x_n[1, :]
     f1diffP = Energy_diff_wrt_P(P_x, T_x, G)
     f1diffT = Energy_diff_wrt_T(P_x, T_x, G)
     f2diffP = Pressure_diff_wrt_P(P_x, T_x, G)
     f2diffT = Pressure_diff_wrt_T(P_x, T_x, G)
     J_Matrix = np.array([[f1diffP,f1diffT],[f2diffP,f2diffT]])
     J_inv = np.linalg.inv(J_Matrix)
+    print(f"This is Inv Jaco {J_inv}")
     return J_inv
 
-def Func_vector(P0,h0,G,P_x,T_x):
-    F = np.array([Energy_Eqn(h0, P_x, T_x, G)],[Pressure_Eqn(P0, P_x, T_x, G)])
+def Func_vector(P0,h0,G,x_n):
+    P_x = x_n[0, :]
+    T_x = x_n[1, :]
+    F = np.array([Energy_Eqn(h0, P_x, T_x, G),Pressure_Eqn(P0, P_x, T_x, G)])
+    print(f"This is F vector {F}")
     return F
 
 def NewtonRaphson(P0,h0,P_x,T_x,G):
-    x_n = np.array([P_x],[T_x])
-    x_n_1 = x_n - np.dot(Jacobian(P_x, T_x, G),Func_vector(P0, h0, G, P_x, T_x))
-    
-    
-    
+    x_n = np.array([[P_x],[T_x]])
+    for iteration in range(20):
+        x_n_1 = x_n - np.dot(Jacobian(x_n, G),Func_vector(P0, h0, G, x_n))
+        norm = np.linalg.norm(x_n_1-x_n)
+        if norm<1e-5:
+            break
+        x_n=x_n_1
+    return x_n_1
 
-b = CP.PropsSI('d(D)/d(P)|T','P',30e5,'T',150,'Hydrogen')    
+P0 = 50e5
+T0 = 25
+h0 = cp('Hmass', 'P', P0, 'T', T0, 'Hydrogen')
+mdot = 6
+Dia_Pipe = 10e-2
+Area_Pipe = math.pi*(Dia_Pipe**2)/4
+G = mdot/Area_Pipe
+P_x = 49e5
+T_x = 24
+Inlet_Field = NewtonRaphson(P0, h0, P_x, T_x, G)
