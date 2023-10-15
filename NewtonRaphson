@@ -21,11 +21,50 @@ def Eqn_of_State(P_x, T_x):
     Rho_inv = 1/Rho
     return Rho_inv
 
+def Cp_fluid(P_x, T_x):
+    Specific_heat = cp('C', 'P', P_x, 'T', T_x, 'Hydrogen')
+    return Specific_heat
+
+def Thermal_conducitvity(P_x, T_x):
+    k = cp('L', 'P', P_x, 'T', T_x, 'Hydrogen')
+    return k
+
+def Prandtl_number(Specific_heat, mu, k):
+    Prandtl_number = (Specific_heat * mu) / k
+    return Prandtl_number
+
+def Viscosity(P_x, T_x):
+    Viscosity = cp('V', 'P', P_x, 'T', T_x, 'Hydrogen')
+    return Viscosity
+
+def Reynolds_number(G, D, mu):
+    Re = (G * D) /mu
+    return Re
+
+def Speed_of_Sound(P_x,rho_x):
+    a = cp('A', 'P', P_x, 'D', rho_x, 'Hydrogen')
+    return a
+
+def colebrook_equation(Re, epsilon, D):
+    f = 0.05                                                                    # Initial guess for friction factor
+    error = 1                                                                   # Error threshold
+    max_iterations = 10
+    iterations = 0
+
+    while (error > 1e-6) and (iterations < max_iterations):
+        f_new = (-2 * math.log10((epsilon / (3.7 * D)) + (2.51 / (Re * math.sqrt(f))))) ** -2
+        error = abs(f_new - f)
+        f = f_new
+        iterations = iterations + 1    
+    friction_factor = f
+    return friction_factor
+
+
 def Energy_Eqn(h0,P_x,T_x,G):
-    print(f"This is P_x {P_x} and T_x is {T_x} at Energy Eqn")
+    # print(f"This is P_x {P_x} and T_x is {T_x} at Energy Eqn")
     f1_without_array = h0 - Enthalpy(P_x, T_x) - (0.5*(G*Eqn_of_State(P_x, T_x))**2)
     f1 = np.array([f1_without_array])
-    print(f"This is f1 {f1}")
+    # print(f"This is f1 {f1}")
     return f1
 
 def H_diff_wrt_P(P_x,T_x):
@@ -37,9 +76,9 @@ def H_diff_wrt_T(P_x,T_x):
     return HdiffT
 
 def Pressure_Eqn(P0,P_x,T_x,G):
-    print(f"This is P_x {P_x} and T_x is {T_x} at Energy Eqn")
+    # print(f"This is P_x {P_x} and T_x is {T_x} at Pressure Eqn")
     f2 = P0 - P_x - ((G**2)*(Eqn_of_State(P_x, T_x)))
-    print(f"This is f2 {f2}")
+    # print(f"This is f2 {f2}")
     return f2
 
 def D_diff_wrt_T(P_x,T_x):
@@ -75,37 +114,78 @@ def Jacobian(x_n,G):
     f2diffT = Pressure_diff_wrt_T(P_x, T_x, G)
     J_Matrix = np.array([[f1diffP,f1diffT],[f2diffP,f2diffT]])
     J_inv = np.linalg.inv(J_Matrix)
-    print(f"This is Inv Jaco {J_inv}")
+    # print(f"This is Inv Jaco {J_inv}")
     return J_inv
 
 def Func_vector(P0,h0,G,x_n):
     P_x = x_n[0, :]
     T_x = x_n[1, :]
     F = np.array([Energy_Eqn(h0, P_x, T_x, G),Pressure_Eqn(P0, P_x, T_x, G)])
-    print(f"This is F vector {F}")
+    # print(f"This is F vector {F}")
     return F
 
 def NewtonRaphson(P0,h0,P_x,T_x,G):
     x_n = np.array([[P_x],[T_x]])
-    for iteration in range(20):
+    for iteration in range(1000):
         print(f"This is iteration {iteration}")
         x_n_1 = x_n - np.dot(Jacobian(x_n, G),Func_vector(P0, h0, G, x_n))
-        print(f"This is new inlet vector {x_n_1}")
-        norm = np.linalg.norm(x_n_1-x_n)
-        if norm<1e-7:
+        # print(f"This is new inlet vector {x_n_1}")
+        Error_Matrix = x_n_1-x_n
+        if (Error_Matrix.all()<1e-7):
+            print(f"This is new inlet vector {x_n_1} and correspnding error is {Error_Matrix}")
             break
         x_n=x_n_1
+    else:
+        print("Solution did not converge within 1000 iterations.")
     return x_n_1
 
-P0 = 40e5
-T0 = 150
-h0 = cp('Hmass', 'P', P0, 'T', T0, 'Hydrogen')
+P0 = 50e5
+T0 = 25
 mdot = 40
-Dia_Pipe = 10e-2
+Dia_Pipe = 15e-2
+L_pipe = 5
+dx = 0.01
+q = 15e6*(dx*Dia_Pipe)                      # 15MW/m2 * Area 
 Area_Pipe = math.pi*(Dia_Pipe**2)/4
+epsilon = 0.3853e-6
 G = mdot/Area_Pipe
-P_x = P0-10e5
-T_x = T0-5
-Inlet_Field = NewtonRaphson(P0, h0, P_x, T_x, G)
 
-    
+pipe_elements = L_pipe / dx 
+segment = 0.00
+segment_array = np.zeros(int(pipe_elements))
+P_x_array = np.zeros(int(pipe_elements))
+P_drop_array_friction = np.zeros(int(pipe_elements))
+T_x_array = np.zeros(int(pipe_elements))
+vel_x_array = np.zeros(int(pipe_elements))
+Pr_x_array = np.zeros(int(pipe_elements))
+Re_x_array = np.zeros(int(pipe_elements))
+Viscosity_array = np.zeros(int(pipe_elements))
+Speed_Sound_array = np.zeros(int(pipe_elements))
+Mach_no_array = np.zeros(int(pipe_elements))
+entropy_array = np.zeros(int(pipe_elements))
+enthalpy_array = np.zeros(int(pipe_elements))
+Nu_array = np.zeros(int(pipe_elements))
+h_array = np.zeros(int(pipe_elements))
+rho_x_array = np.zeros(int(pipe_elements))
+cp_array = np.zeros(int(pipe_elements))
+current_index = 0
+
+
+h0 = cp('Hmass', 'P', P0, 'T', T0, 'Hydrogen')
+P_x = P0-1e5
+T_x = T0-2  
+Inlet_Field = NewtonRaphson(P0, h0, P_x, T_x, G)
+Static_Pressure = Inlet_Field[0,:]
+Static_Temp = Inlet_Field[1,:]
+Static_Dens = cp('D', 'P', Static_Pressure, 'T', Static_Temp, 'Hydrogen')
+Error_pressure =Pressure_Eqn(P0, Static_Pressure,Static_Temp, G)
+Error_Energy = Energy_Eqn(h0, Static_Pressure, Static_Temp, G)
+Vel = G/Static_Dens
+mu = Viscosity(Static_Pressure, Static_Temp)
+Re = Reynolds_number(G, Dia_Pipe, mu)
+f = colebrook_equation(Re, epsilon, Dia_Pipe)
+friction_drop = (G**2)*f*dx/(2*Static_Dens)
+T0 = T0 + q/(mdot*Cp_fluid(P0, T0))
+P0 = P0-friction_drop
+
+while ((segment < pipe_elements) and (current_index<pipe_elements))
