@@ -130,32 +130,34 @@ def NewtonRaphson(P0,h0,P_x,T_x,G):
         print(f"This is iteration {iteration}")
         x_n_1 = x_n - np.dot(Jacobian(x_n, G),Func_vector(P0, h0, G, x_n))
         # print(f"This is new inlet vector {x_n_1}")
-        Error_Matrix = x_n_1-x_n
+        Error_Matrix = (x_n_1-x_n)
         if (Error_Matrix.all()<1e-7):
             print(f"This is new inlet vector {x_n_1} and correspnding error is {Error_Matrix}")
             break
         x_n=x_n_1
     else:
         print("Solution did not converge within 1000 iterations.")
+        
     return x_n_1
 
 P0 = 50e5
 T0 = 25
 mdot = 40
-Dia_Pipe = 15e-2
-L_pipe = 5
+Dia_Pipe = 10e-2
+L_pipe = 23.19
 dx = 0.01
 q = 15e6*(dx*Dia_Pipe)                      # 15MW/m2 * Area 
 Area_Pipe = math.pi*(Dia_Pipe**2)/4
 epsilon = 0.3853e-6
 G = mdot/Area_Pipe
-
 pipe_elements = L_pipe / dx 
 segment = 0.00
 segment_array = np.zeros(int(pipe_elements))
-P_x_array = np.zeros(int(pipe_elements))
+Stag_P_x_array = np.zeros(int(pipe_elements))
+Stat_P_x_array = np.zeros(int(pipe_elements))
 P_drop_array_friction = np.zeros(int(pipe_elements))
-T_x_array = np.zeros(int(pipe_elements))
+Stag_T_x_array = np.zeros(int(pipe_elements))
+Stat_T_x_array = np.zeros(int(pipe_elements))
 vel_x_array = np.zeros(int(pipe_elements))
 Pr_x_array = np.zeros(int(pipe_elements))
 Re_x_array = np.zeros(int(pipe_elements))
@@ -166,26 +168,74 @@ entropy_array = np.zeros(int(pipe_elements))
 enthalpy_array = np.zeros(int(pipe_elements))
 Nu_array = np.zeros(int(pipe_elements))
 h_array = np.zeros(int(pipe_elements))
-rho_x_array = np.zeros(int(pipe_elements))
+Stag_rho_x_array = np.zeros(int(pipe_elements))
+Stat_rho_x_array = np.zeros(int(pipe_elements))
+friction_drop = np.zeros(int(pipe_elements))
 cp_array = np.zeros(int(pipe_elements))
+Error_Energy = np.zeros(int(pipe_elements))
+Error_pressure = np.zeros(int(pipe_elements))
 current_index = 0
 
 
-h0 = cp('Hmass', 'P', P0, 'T', T0, 'Hydrogen')
-P_x = P0-1e5
-T_x = T0-2  
-Inlet_Field = NewtonRaphson(P0, h0, P_x, T_x, G)
-Static_Pressure = Inlet_Field[0,:]
-Static_Temp = Inlet_Field[1,:]
-Static_Dens = cp('D', 'P', Static_Pressure, 'T', Static_Temp, 'Hydrogen')
-Error_pressure =Pressure_Eqn(P0, Static_Pressure,Static_Temp, G)
-Error_Energy = Energy_Eqn(h0, Static_Pressure, Static_Temp, G)
-Vel = G/Static_Dens
-mu = Viscosity(Static_Pressure, Static_Temp)
-Re = Reynolds_number(G, Dia_Pipe, mu)
-f = colebrook_equation(Re, epsilon, Dia_Pipe)
-friction_drop = (G**2)*f*dx/(2*Static_Dens)
-T0 = T0 + q/(mdot*Cp_fluid(P0, T0))
-P0 = P0-friction_drop
+while ((segment < pipe_elements) and (current_index<pipe_elements)):
+    segment_array[current_index] = segment
+    h0 = cp('Hmass', 'P', P0, 'T', T0, 'Hydrogen')
+    Stag_P_x_array[current_index]= P0
+    Stag_T_x_array[current_index]=T0
+    Stag_rho_x_array [current_index] = 1/Eqn_of_State(P0, T0) 
+    P_x = P0-0.5e5
+    T_x = T0-2  
+    Inlet_Field = NewtonRaphson(P0, h0, P_x, T_x, G)
+    Stat_P_x_array[current_index] = Inlet_Field[0,:]
+    Stat_T_x_array[current_index] = Inlet_Field[1,:]
+    Stat_rho_x_array[current_index] = 1/Eqn_of_State(Stat_P_x_array[current_index], Stat_T_x_array[current_index]) 
+    Error_pressure[current_index] =abs(Pressure_Eqn(P0, Stat_P_x_array[current_index],Stat_T_x_array[current_index], G))
+    Error_Energy[current_index] = abs(Energy_Eqn(h0, Stat_P_x_array[current_index], Stat_T_x_array[current_index], G))
+    vel_x_array[current_index] = G/Stat_rho_x_array[current_index]
+    Mach_no_array[current_index] = vel_x_array[current_index]/Speed_of_Sound(Stat_P_x_array[current_index], Stat_rho_x_array[current_index])
+    Viscosity_array[current_index] = Viscosity(Stat_P_x_array[current_index], Stat_T_x_array[current_index])
+    Re_x_array[current_index] = Reynolds_number(G, Dia_Pipe, Viscosity_array[current_index])
+    f = colebrook_equation(Re_x_array[current_index], epsilon, Dia_Pipe)
+    friction_drop[current_index] = (G**2)*f*dx*Eqn_of_State(Stat_P_x_array[current_index], Stat_T_x_array[current_index])/(2)
+    T0 = T0 + q/(mdot*Cp_fluid(Stag_P_x_array[current_index], Stag_T_x_array[current_index]))
+    P0 = P0-friction_drop[current_index]
+    segment = segment + dx
+    current_index = current_index+1
+    
+plt.figure(1)
+plt.plot(segment_array, (Stat_P_x_array)/1e5)
+plt.title('Static Pressure vs Pipe Length')
+plt.xlabel('Pipe Length (m)')
+plt.ylabel('Static Pressure (Bar)')
 
-while ((segment < pipe_elements) and (current_index<pipe_elements))
+
+plt.figure(2)
+plt.plot(segment_array, Stat_T_x_array)
+plt.title('Static Temperature vs Pipe Length')
+plt.xlabel('Pipe Length (m)')
+plt.ylabel('Static Temperature (K)')
+
+plt.figure(3)
+plt.plot(segment_array, Error_pressure)
+plt.title('Pressure Error vs Pipe Length')
+plt.xlabel('Pipe Length (m)')
+plt.ylabel('Pressure Error')
+
+plt.figure(4)
+plt.plot(segment_array, Error_Energy)
+plt.title('Energy Error vs Pipe Length')
+plt.xlabel('Pipe Length (m)')
+plt.ylabel('Energy Error')
+
+plt.figure(5)
+plt.plot(segment_array, vel_x_array)
+plt.title(' Velocity vs Pipe Length')
+plt.xlabel('Pipe Length (m)')
+plt.ylabel('Velocity')
+    
+plt.figure(6)
+plt.plot(segment_array, Mach_no_array)
+plt.title(' Mach no  vs Pipe Length')
+plt.xlabel('Pipe Length (m)')
+plt.ylabel('Mach no')
+    
