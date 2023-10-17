@@ -124,27 +124,28 @@ def Func_vector(P0,h0,G,x_n):
     # print(f"This is F vector {F}")
     return F
 
-def NewtonRaphson(P0,h0,P_x,T_x,G):
+def NewtonRaphson(P0,h0,P_x,T_x,G,current_index):
     x_n = np.array([[P_x],[T_x]])
     for iteration in range(1000):
-        print(f"This is iteration {iteration}")
+        # print(f"This is iteration {iteration}")
         x_n_1 = x_n - np.dot(Jacobian(x_n, G),Func_vector(P0, h0, G, x_n))
         # print(f"This is new inlet vector {x_n_1}")
         Error_Matrix = (x_n_1-x_n)
         if (Error_Matrix.all()<1e-7):
-            print(f"This is new inlet vector {x_n_1} and correspnding error is {Error_Matrix}")
+            a = 0
+            # print(f"This is new inlet vector {x_n_1} and correspnding error is {Error_Matrix}")
             break
         x_n=x_n_1
     else:
-        print("Solution did not converge within 1000 iterations.")
-        
-    return x_n_1
+        print(f"Solution did not converge within 1000 iterations at element {current_index}")
+        a = 1
+    return x_n_1,a
 
 P0 = 50e5
 T0 = 25
 mdot = 40
 Dia_Pipe = 10e-2
-L_pipe = 23.19
+L_pipe = 23
 dx = 0.01
 q = 15e6*(dx*Dia_Pipe)                      # 15MW/m2 * Area 
 Area_Pipe = math.pi*(Dia_Pipe**2)/4
@@ -174,6 +175,8 @@ friction_drop = np.zeros(int(pipe_elements))
 cp_array = np.zeros(int(pipe_elements))
 Error_Energy = np.zeros(int(pipe_elements))
 Error_pressure = np.zeros(int(pipe_elements))
+Not_converged = np.zeros(int(pipe_elements))
+one_indices = []
 current_index = 0
 
 
@@ -185,12 +188,13 @@ while ((segment < pipe_elements) and (current_index<pipe_elements)):
     Stag_rho_x_array [current_index] = 1/Eqn_of_State(P0, T0) 
     P_x = P0-0.5e5
     T_x = T0-2  
-    Inlet_Field = NewtonRaphson(P0, h0, P_x, T_x, G)
+    Inlet_Field, a = NewtonRaphson(P0, h0, P_x, T_x, G,current_index)
     Stat_P_x_array[current_index] = Inlet_Field[0,:]
     Stat_T_x_array[current_index] = Inlet_Field[1,:]
+    Not_converged[current_index] = a
     Stat_rho_x_array[current_index] = 1/Eqn_of_State(Stat_P_x_array[current_index], Stat_T_x_array[current_index]) 
-    Error_pressure[current_index] =abs(Pressure_Eqn(P0, Stat_P_x_array[current_index],Stat_T_x_array[current_index], G))
-    Error_Energy[current_index] = abs(Energy_Eqn(h0, Stat_P_x_array[current_index], Stat_T_x_array[current_index], G))
+    Error_pressure[current_index] =((abs((Pressure_Eqn(P0, Stat_P_x_array[current_index],Stat_T_x_array[current_index], G))/P0)))
+    Error_Energy[current_index] = ((abs((Energy_Eqn(h0, Stat_P_x_array[current_index], Stat_T_x_array[current_index], G))/h0)))
     vel_x_array[current_index] = G/Stat_rho_x_array[current_index]
     Mach_no_array[current_index] = vel_x_array[current_index]/Speed_of_Sound(Stat_P_x_array[current_index], Stat_rho_x_array[current_index])
     Viscosity_array[current_index] = Viscosity(Stat_P_x_array[current_index], Stat_T_x_array[current_index])
@@ -202,40 +206,61 @@ while ((segment < pipe_elements) and (current_index<pipe_elements)):
     segment = segment + dx
     current_index = current_index+1
     
+for index, value in enumerate(Not_converged):
+    if value == 1:
+        one_indices.append(index)
+    
 plt.figure(1)
-plt.plot(segment_array, (Stat_P_x_array)/1e5)
-plt.title('Static Pressure vs Pipe Length')
+plt.plot(segment_array, (Stat_P_x_array) / 1e5, label='Static Pressure (Bar)')
+plt.plot(segment_array, (Stag_P_x_array) / 1e5, label='Stagnation Pressure (Bar)')
+plt.scatter(segment_array[one_indices], (Stat_P_x_array[one_indices]) / 1e5, marker='*', color='red', label='Poor Convergence')
+plt.scatter(segment_array[one_indices], (Stag_P_x_array[one_indices]) / 1e5, marker='*', color='purple')
+plt.title('Pressure vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
-plt.ylabel('Static Pressure (Bar)')
-
+plt.ylabel('Pressure (Bar)')
+plt.legend()
 
 plt.figure(2)
-plt.plot(segment_array, Stat_T_x_array)
-plt.title('Static Temperature vs Pipe Length')
+plt.plot(segment_array, Stat_T_x_array, label='Static Temperature (K)')
+plt.plot(segment_array, Stag_T_x_array, label='Stagnation Temperature (K)')
+plt.scatter(segment_array[one_indices], (Stat_T_x_array[one_indices]) , marker='*', color='red', label='Poor Convergence')
+plt.scatter(segment_array[one_indices], (Stag_T_x_array[one_indices]) , marker='*', color='purple')
+plt.title('Temperature vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
-plt.ylabel('Static Temperature (K)')
+plt.ylabel('Temperature (K)')
+plt.legend()
 
 plt.figure(3)
-plt.plot(segment_array, Error_pressure)
-plt.title('Pressure Error vs Pipe Length')
+plt.plot(segment_array, Error_pressure*100,label='Pressure Error (%)')
+plt.plot(segment_array, Error_Energy*100,label='Energy Error (%)')
+plt.scatter(segment_array[one_indices], (Error_Energy[one_indices]) , marker='*', color='red', label='Poor Convergence')
+plt.title('Error vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
-plt.ylabel('Pressure Error')
+plt.ylabel('Error %')
+plt.legend()
 
 plt.figure(4)
-plt.plot(segment_array, Error_Energy)
-plt.title('Energy Error vs Pipe Length')
+plt.plot(segment_array, Stat_rho_x_array, label='Static Density (kg/m3)')
+plt.plot(segment_array, Stag_rho_x_array, label='Stagnation Density (kg/m3)')
+plt.scatter(segment_array[one_indices], (Stat_rho_x_array[one_indices]) , marker='*', color='red', label='Poor Convergence')
+plt.scatter(segment_array[one_indices], (Stag_rho_x_array[one_indices]) , marker='*', color='purple')
+plt.title('Density vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
-plt.ylabel('Energy Error')
+plt.ylabel('Density (kg/m3)')
+plt.legend()
 
 plt.figure(5)
 plt.plot(segment_array, vel_x_array)
+plt.scatter(segment_array[one_indices], (vel_x_array[one_indices]) , marker='*', color='red', label='Poor Convergence')
 plt.title(' Velocity vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
 plt.ylabel('Velocity')
+plt.legend()
     
 plt.figure(6)
 plt.plot(segment_array, Mach_no_array)
+plt.scatter(segment_array[one_indices], (Mach_no_array[one_indices]) , marker='*', color='red', label='Poor Convergence')
 plt.title(' Mach no  vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
 plt.ylabel('Mach no')
-    
+plt.legend()
