@@ -180,7 +180,7 @@ cp_array = np.zeros(int(pipe_elements))
 Error_Energy = np.zeros(int(pipe_elements))
 Error_pressure = np.zeros(int(pipe_elements))
 Not_converged = np.zeros(int(pipe_elements))
-one_indices = []
+Index_Matrix = []
 current_index = 0
 
 
@@ -211,15 +211,17 @@ while ((segment < pipe_elements) and (current_index<pipe_elements)):
     segment = segment + dx
     current_index = current_index+1
     
-for index, value in enumerate(Not_converged):
-    if value == 1:
-        one_indices.append(index)
+
+for index in range(len(Not_converged)):
+    if Not_converged[index] == 1:
+        Index_Matrix.append(index)
+
     
 plt.figure(1)
 plt.plot(segment_array, (Stat_P_x_array) / 1e5, label='Static Pressure (Bar)')
 plt.plot(segment_array, (Stag_P_x_array) / 1e5, label='Stagnation Pressure (Bar)')
-plt.scatter(segment_array[one_indices], (Stat_P_x_array[one_indices]) / 1e5, marker='*', color='red', label='Poor Convergence')
-plt.scatter(segment_array[one_indices], (Stag_P_x_array[one_indices]) / 1e5, marker='*', color='purple')
+plt.scatter(segment_array[Index_Matrix], (Stat_P_x_array[Index_Matrix]) / 1e5, marker='*', color='red', label='Poor Convergence')
+plt.scatter(segment_array[Index_Matrix], (Stag_P_x_array[Index_Matrix]) / 1e5, marker='*', color='purple')
 plt.title('Pressure vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
 plt.ylabel('Pressure (Bar)')
@@ -228,8 +230,8 @@ plt.legend()
 plt.figure(2)
 plt.plot(segment_array, Stat_T_x_array, label='Static Temperature (K)')
 plt.plot(segment_array, Stag_T_x_array, label='Stagnation Temperature (K)')
-plt.scatter(segment_array[one_indices], (Stat_T_x_array[one_indices]) , marker='*', color='red', label='Poor Convergence')
-plt.scatter(segment_array[one_indices], (Stag_T_x_array[one_indices]) , marker='*', color='purple')
+plt.scatter(segment_array[Index_Matrix], (Stat_T_x_array[Index_Matrix]) , marker='*', color='red', label='Poor Convergence')
+plt.scatter(segment_array[Index_Matrix], (Stag_T_x_array[Index_Matrix]) , marker='*', color='purple')
 plt.title('Temperature vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
 plt.ylabel('Temperature (K)')
@@ -238,7 +240,7 @@ plt.legend()
 plt.figure(3)
 plt.plot(segment_array, Error_pressure*100,label='Pressure Error (%)')
 plt.plot(segment_array, Error_Energy*100,label='Energy Error (%)')
-plt.scatter(segment_array[one_indices], (Error_Energy[one_indices]) , marker='*', color='red', label='Poor Convergence')
+plt.scatter(segment_array[Index_Matrix], (Error_Energy[Index_Matrix]) , marker='*', color='red', label='Poor Convergence')
 plt.title('Error vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
 plt.ylabel('Error %')
@@ -247,8 +249,8 @@ plt.legend()
 plt.figure(4)
 plt.plot(segment_array, Stat_rho_x_array, label='Static Density (kg/m3)')
 plt.plot(segment_array, Stag_rho_x_array, label='Stagnation Density (kg/m3)')
-plt.scatter(segment_array[one_indices], (Stat_rho_x_array[one_indices]) , marker='*', color='red', label='Poor Convergence')
-plt.scatter(segment_array[one_indices], (Stag_rho_x_array[one_indices]) , marker='*', color='purple')
+plt.scatter(segment_array[Index_Matrix], (Stat_rho_x_array[Index_Matrix]) , marker='*', color='red', label='Poor Convergence')
+plt.scatter(segment_array[Index_Matrix], (Stag_rho_x_array[Index_Matrix]) , marker='*', color='purple')
 plt.title('Density vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
 plt.ylabel('Density (kg/m3)')
@@ -256,7 +258,7 @@ plt.legend()
 
 plt.figure(5)
 plt.plot(segment_array, vel_x_array)
-plt.scatter(segment_array[one_indices], (vel_x_array[one_indices]) , marker='*', color='red', label='Poor Convergence')
+plt.scatter(segment_array[Index_Matrix], (vel_x_array[Index_Matrix]) , marker='*', color='red', label='Poor Convergence')
 plt.title(' Velocity vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
 plt.ylabel('Velocity')
@@ -264,7 +266,7 @@ plt.legend()
     
 plt.figure(6)
 plt.plot(segment_array, Mach_no_array)
-plt.scatter(segment_array[one_indices], (Mach_no_array[one_indices]) , marker='*', color='red', label='Poor Convergence')
+plt.scatter(segment_array[Index_Matrix], (Mach_no_array[Index_Matrix]) , marker='*', color='red', label='Poor Convergence')
 plt.title(' Mach no  vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
 plt.ylabel('Mach no')
@@ -272,7 +274,7 @@ plt.legend()
 
 plt.figure(7)
 plt.plot(entropy_array, Stat_T_x_array)
-plt.scatter(entropy_array[one_indices], (Stat_T_x_array[one_indices]) , marker='*', color='red', label='Poor Convergence')
+plt.scatter(entropy_array[Index_Matrix], (Stat_T_x_array[Index_Matrix]) , marker='*', color='red', label='Poor Convergence')
 plt.title('Rayleigh Fanno line')
 plt.xlabel('Entropy (kJ/kgK)')
 plt.ylabel('Temperature (K)')
