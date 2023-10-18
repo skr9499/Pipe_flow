@@ -16,6 +16,10 @@ def Enthalpy(P_x,T_x):
     H = cp('Hmass', 'P', P_x, 'T', T_x, 'Hydrogen')
     return H
 
+def Entropy(P_x,rho_x):
+    S = cp('S', 'P', P_x, 'D', rho_x, 'Hydrogen')
+    return S
+
 def Eqn_of_State(P_x, T_x):
     Rho = cp('D', 'P', P_x, 'T', T_x, 'Hydrogen')
     Rho_inv = 1/Rho
@@ -143,9 +147,9 @@ def NewtonRaphson(P0,h0,P_x,T_x,G,current_index):
 
 P0 = 50e5
 T0 = 25
-mdot = 40
-Dia_Pipe = 10e-2
-L_pipe = 23
+mdot = 6
+Dia_Pipe = 6e-2
+L_pipe = 32.40
 dx = 0.01
 q = 15e6*(dx*Dia_Pipe)                      # 15MW/m2 * Area 
 Area_Pipe = math.pi*(Dia_Pipe**2)/4
@@ -201,6 +205,7 @@ while ((segment < pipe_elements) and (current_index<pipe_elements)):
     Re_x_array[current_index] = Reynolds_number(G, Dia_Pipe, Viscosity_array[current_index])
     f = colebrook_equation(Re_x_array[current_index], epsilon, Dia_Pipe)
     friction_drop[current_index] = (G**2)*f*dx*Eqn_of_State(Stat_P_x_array[current_index], Stat_T_x_array[current_index])/(2)
+    entropy_array[current_index] = Entropy(Stat_P_x_array[current_index], Stat_rho_x_array[current_index])
     T0 = T0 + q/(mdot*Cp_fluid(Stag_P_x_array[current_index], Stag_T_x_array[current_index]))
     P0 = P0-friction_drop[current_index]
     segment = segment + dx
@@ -264,3 +269,16 @@ plt.title(' Mach no  vs Pipe Length')
 plt.xlabel('Pipe Length (m)')
 plt.ylabel('Mach no')
 plt.legend()
+
+plt.figure(7)
+plt.plot(entropy_array, Stat_T_x_array)
+plt.scatter(entropy_array[one_indices], (Stat_T_x_array[one_indices]) , marker='*', color='red', label='Poor Convergence')
+plt.title('Rayleigh Fanno line')
+plt.xlabel('Entropy (kJ/kgK)')
+plt.ylabel('Temperature (K)')
+plt.legend()
+
+
+l = np.argmax(Stat_T_x_array)
+print(f"Inflexion is at {l} element")
+print(f"{(Stat_T_x_array)[l]} is the max temperature when Mach no is {Mach_no_array[l]}")
