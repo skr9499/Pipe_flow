@@ -29,6 +29,14 @@ def Cp_fluid(P_x, T_x):
     Specific_heat = cp('C', 'P', P_x, 'T', T_x, 'Hydrogen')
     return Specific_heat
 
+def Cv_fluid(P_x,T_x):
+    Cv  = cp('O', 'P', P_x, 'T', T_x, 'Hydrogen')
+    return Cv
+
+def gamma(P_x,T_x):
+    gamma = Cp_fluid(P_x, T_x)/Cv_fluid(P_x, T_x)
+    return gamma
+
 def Thermal_conducitvity(P_x, T_x):
     k = cp('L', 'P', P_x, 'T', T_x, 'Hydrogen')
     return k
@@ -141,15 +149,15 @@ def NewtonRaphson(P0,h0,P_x,T_x,G,current_index):
             break
         x_n=x_n_1
     else:
-        print(f"Solution did not converge within 1000 iterations at element {current_index}")
+        # print(f"Solution did not converge within 1000 iterations at element {current_index}")
         a = 1
     return x_n_1,a
 
 P0 = 50e5
 T0 = 25
-mdot = 6
-Dia_Pipe = 6e-2
-L_pipe = 32.40
+mdot = 40
+Dia_Pipe = 8e-2
+L_pipe = 14.38
 dx = 0.01
 q = 15e6*(dx*Dia_Pipe)                      # 15MW/m2 * Area 
 Area_Pipe = math.pi*(Dia_Pipe**2)/4
@@ -158,6 +166,8 @@ G = mdot/Area_Pipe
 pipe_elements = L_pipe / dx 
 segment = 0.00
 segment_array = np.zeros(int(pipe_elements))
+Stag_h0_array = np.zeros(int(pipe_elements))
+Stat_h_array = np.zeros(int(pipe_elements))
 Stag_P_x_array = np.zeros(int(pipe_elements))
 Stat_P_x_array = np.zeros(int(pipe_elements))
 P_drop_array_friction = np.zeros(int(pipe_elements))
@@ -180,33 +190,41 @@ cp_array = np.zeros(int(pipe_elements))
 Error_Energy = np.zeros(int(pipe_elements))
 Error_pressure = np.zeros(int(pipe_elements))
 Not_converged = np.zeros(int(pipe_elements))
+Energy_func = np.zeros(int(pipe_elements))
+gamma_array = np.zeros(int(pipe_elements))
+Inflexion_region = np.zeros(int(pipe_elements))
 Index_Matrix = []
 current_index = 0
 
 
 while ((segment < pipe_elements) and (current_index<pipe_elements)):
     segment_array[current_index] = segment
-    h0 = cp('Hmass', 'P', P0, 'T', T0, 'Hydrogen')
+    Stag_h0_array[current_index] = cp('Hmass', 'P', P0, 'T', T0, 'Hydrogen')
     Stag_P_x_array[current_index]= P0
     Stag_T_x_array[current_index]=T0
     Stag_rho_x_array [current_index] = 1/Eqn_of_State(P0, T0) 
-    P_x = P0-0.5e5
-    T_x = T0-2  
-    Inlet_Field, a = NewtonRaphson(P0, h0, P_x, T_x, G,current_index)
+    P_x = P0+0.5e5
+    T_x = T0+2  
+    Inlet_Field, a = NewtonRaphson(P0, Stag_h0_array[current_index], P_x, T_x, G,current_index)
     Stat_P_x_array[current_index] = Inlet_Field[0,:]
     Stat_T_x_array[current_index] = Inlet_Field[1,:]
     Not_converged[current_index] = a
     Stat_rho_x_array[current_index] = 1/Eqn_of_State(Stat_P_x_array[current_index], Stat_T_x_array[current_index]) 
+    Stat_h_array[current_index] = cp('Hmass', 'P', Stat_P_x_array[current_index], 'T', Stat_T_x_array[current_index], 'Hydrogen')
     Error_pressure[current_index] =((abs((Pressure_Eqn(P0, Stat_P_x_array[current_index],Stat_T_x_array[current_index], G))/P0)))
-    Error_Energy[current_index] = ((abs((Energy_Eqn(h0, Stat_P_x_array[current_index], Stat_T_x_array[current_index], G))/h0)))
+    Error_Energy[current_index] = ((abs((Energy_Eqn(Stag_h0_array[current_index], Stat_P_x_array[current_index], Stat_T_x_array[current_index], G))/Stag_h0_array[current_index])))
     vel_x_array[current_index] = G/Stat_rho_x_array[current_index]
     Mach_no_array[current_index] = vel_x_array[current_index]/Speed_of_Sound(Stat_P_x_array[current_index], Stat_rho_x_array[current_index])
+    Energy_func[current_index] = Stat_h_array[current_index] + (((vel_x_array[current_index])**2)/2)
     Viscosity_array[current_index] = Viscosity(Stat_P_x_array[current_index], Stat_T_x_array[current_index])
     Re_x_array[current_index] = Reynolds_number(G, Dia_Pipe, Viscosity_array[current_index])
     f = colebrook_equation(Re_x_array[current_index], epsilon, Dia_Pipe)
     friction_drop[current_index] = (G**2)*f*dx*Eqn_of_State(Stat_P_x_array[current_index], Stat_T_x_array[current_index])/(2)
     entropy_array[current_index] = Entropy(Stat_P_x_array[current_index], Stat_rho_x_array[current_index])
-    T0 = T0 + q/(mdot*Cp_fluid(Stag_P_x_array[current_index], Stag_T_x_array[current_index]))
+    gamma_array[current_index] = gamma(P0, T0)
+    Inflexion_region[current_index] = math.sqrt(1/gamma_array[current_index])
+    cp_array[current_index] = Cp_fluid(P0, T0)
+    T0 = T0 + q/(mdot*(cp_array[current_index]))
     P0 = P0-friction_drop[current_index]
     segment = segment + dx
     current_index = current_index+1
@@ -280,7 +298,30 @@ plt.xlabel('Entropy (kJ/kgK)')
 plt.ylabel('Temperature (K)')
 plt.legend()
 
+plt.figure(8)
+plt.plot(segment_array, Stat_h_array,label='Static Enthalpy (kg/m3)')
+plt.plot(segment_array, Stag_h0_array, label='Stag Enthalpy (kg/m3)')
+plt.plot(segment_array, Energy_func, label='?? Conserved (kg/m3)')
+plt.title('Enthalpy Lines')
+plt.xlabel('Length (m)') 
+plt.ylabel('Enthalpy (??)')
+plt.legend()
+
+
+plt.figure(9)
+plt.plot(segment_array, gamma_array)
+plt.title('Gamma ')
+plt.xlabel('Length (m)') 
+plt.ylabel('Gamma (??)')
+plt.legend()
+
+plt.figure(10)
+plt.plot(segment_array, Inflexion_region)
+plt.title('Inflexion Mach no ')
+plt.xlabel('Length (m)') 
+plt.ylabel(' Inflexion Mach no')
+plt.legend()
 
 l = np.argmax(Stat_T_x_array)
-print(f"Inflexion is at {l} element")
+print(f"Inflexion is at {l} element and {Inflexion_region[l]}<M<1")
 print(f"{(Stat_T_x_array)[l]} is the max temperature when Mach no is {Mach_no_array[l]}")
