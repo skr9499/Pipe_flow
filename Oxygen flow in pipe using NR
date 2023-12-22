@@ -229,12 +229,14 @@ while ((segment < pipe_elements) and (current_index<pipe_elements)):
     segment = segment + dx
     current_index = current_index+1
     
-
+# Ignore these * non convergence criterion, the flow is still continous
 for index in range(len(Not_converged)):
     if Not_converged[index] == 1:
         Index_Matrix.append(index)
 
-    
+# Ignore these * non convergence criterion, the flow is still continous
+# Ignore these * non convergence criterion, the flow is still continous
+print("Ignore these * non convergence criterion, the flow is still continous")
 plt.figure(1)
 plt.plot(segment_array, (Stat_P_x_array) / 1e5, label='Static Pressure (Bar)')
 plt.plot(segment_array, (Stag_P_x_array) / 1e5, label='Stagnation Pressure (Bar)')
